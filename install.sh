@@ -35,7 +35,7 @@ install_tmux() {
 if ! is_app_installed tmux; then
   install_tmux
 elif ! tmux -V | grep -q $TMUX_VERSION; then
-  printf "WARNING: Not configured tmux version installed. Remove it first."
+  printf "WARNING: Not configured tmux version installed. Remove it first.\n"
   exit 1
 fi
 
@@ -47,7 +47,8 @@ if [ ! -e "$HOME/tmuxNOC/plugins/tpm" ]; then
 fi
 
 if [ -e "$HOME/.tmux.conf" ]; then
-  printf "Found existing .tmux.conf in your \$HOME directory. Will create a backup at $HOME/.tmux.conf.bak\n"
+  printf "Found existing .tmux.conf in your \$HOME directory. \
+Will create a backup at $HOME/.tmux.conf.bak\n"
 fi
 
 cp -f "$HOME/.tmux.conf" "$HOME/.tmux.conf.bak" 2>/dev/null || true
