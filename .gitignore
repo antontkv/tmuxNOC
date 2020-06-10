@@ -1,2 +1,4 @@
 tmux-config/
 plugins/
+.logins
+sessions.json

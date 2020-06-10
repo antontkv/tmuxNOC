@@ -1,0 +1,11 @@
+# If not running interactively, don't do anything
+case $- in
+    *i*) ;;
+      *) return;;
+esac
+
+# Don't write to history file
+export HISTFILE=/dev/null
+
+# Setting prompt
+PS1="\[\033[33m\]Hit ENTER to retry.\[\033[00m\]"
