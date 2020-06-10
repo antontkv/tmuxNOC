@@ -50,11 +50,11 @@ def connect_telnet(host):
         [
             'tmux',
             'new-window',
-            '-n',
-            host,
-            f'PROMPT_COMMAND="telnet {host}" bash --rcfile {home}/tmuxNOC/tmux_noc_bashrc'
+            '-n', host,
+            f'PROMPT_COMMAND="telnet {host}";TERM=vt100-w bash --rcfile {home}/tmuxNOC/tmux_noc_bashrc'
         ]
     )
+    subprocess.run(['tmux', 'source-file', f'{home}/tmuxNOC/telnet_tmux.conf'])
     # subprocess.run(['tmux', 'send-keys', f'telnet {host}', 'Enter'])
     save_session('telnet', host)
 
