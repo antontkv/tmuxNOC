@@ -62,11 +62,10 @@ def connect_telnet(host):
             'tmux',
             'new-window',
             '-n', host,
-            f'PROMPT_COMMAND="telnet {host}";TERM=vt100-w bash \
+            f'PROMPT_COMMAND="{home}/tmuxNOC/kbdfix.sh telnet {host}";TERM=vt100-w bash \
               --rcfile {home}/tmuxNOC/tmux_noc_bashrc'
         ]
     )
-    subprocess.run(['tmux', 'source-file', f'{home}/tmuxNOC/telnet_tmux.conf'])
     save_session('telnet', host)
 
 def tmux_send(string, conformation_symbol='Enter', target_pane='*'):
