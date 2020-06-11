@@ -51,7 +51,7 @@ def setup_telnet():
         'telnet:',
         '-I',
         hostname,
-        f'run "{home}/tmuxNOC/tmux_noc.py connect_telnet --host %1"'
+        f'run "{home}/tmuxNOC/scripts/tmux_noc.py connect_telnet --host %1"'
     ]
     subprocess.run(command)
 
@@ -62,8 +62,8 @@ def connect_telnet(host):
             'tmux',
             'new-window',
             '-n', host,
-            f'PROMPT_COMMAND="{home}/tmuxNOC/kbdfix.sh telnet {host}";TERM=vt100-w bash \
-              --rcfile {home}/tmuxNOC/tmux_noc_bashrc'
+            f'PROMPT_COMMAND="{home}/tmuxNOC/scripts/kbdfix.sh telnet {host}";TERM=vt100-w bash \
+              --rcfile {home}/tmuxNOC/misc/tmux_noc_bashrc'
         ]
     )
     save_session('telnet', host)
