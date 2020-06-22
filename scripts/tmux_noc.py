@@ -5,6 +5,10 @@ import argparse
 import json
 import datetime
 from pathlib import Path
+import os
+from errno import EEXIST
+import sys
+import re
 
 class ANSIColors:
     HEADER = '\033[95m'
@@ -17,11 +21,52 @@ class ANSIColors:
     UNDERLINE = '\033[4m'
 
 
+def create_dir(filename):
+    """
+    Creates path for file, if directories doesn't exists.
+    """
+    if not os.path.exists(os.path.dirname(filename)):
+        try:
+            os.makedirs(os.path.dirname(filename))
+        except OSError as exc: # Guard against race condition
+            if exc.errno != EEXIST:
+                raise
+
+
+def escape_ansi(line):
+    """
+    Removes ANSI escape characters from line.
+    Credits goes to https://stackoverflow.com/a/38662876
+    """
+    line = line.replace('\r', '').replace('\n', '')
+    ansi_escape = re.compile(r'(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]')
+    return ansi_escape.sub('', line)
+
+
+def write_log(pipe):
+    for line in pipe:
+        print(escape_ansi(line), flush=True)
+
+def pane_log(connection_type, host):
+    home = str(Path.home())
+    timestamp = datetime.datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
+    log_filename = f'{home}/tmuxNOC/local/log/{timestamp}---{connection_type}_{host}.log'
+    create_dir(log_filename)
+
+    subprocess.run([
+        'tmux',
+        'pipe-pane',
+        '-o',
+        f'{home}/tmuxNOC/scripts/tmux_noc.py pipe -i - >> {log_filename}'
+    ])
+
+
 def load_sessions():
     home = str(Path.home())
     with open(f'{home}/tmuxNOC/sessions.json', 'r') as f:
         sessions = json.load(f)
     return sessions
+
 
 def save_session(connection_type, host):
     home = str(Path.home())
@@ -36,6 +81,7 @@ def save_session(connection_type, host):
         sessions['last_telnet_session'] = host
     with open(f'{home}/tmuxNOC/sessions.json', 'w') as f:
         json.dump(sessions, f)
+
 
 def setup_telnet():
     home = str(Path.home())
@@ -55,6 +101,7 @@ def setup_telnet():
     ]
     subprocess.run(command)
 
+
 def connect_telnet(host):
     home = str(Path.home())
     subprocess.run(
@@ -66,7 +113,9 @@ def connect_telnet(host):
               --rcfile {home}/tmuxNOC/misc/tmux_noc_bashrc'
         ]
     )
+    pane_log('t', host)
     save_session('telnet', host)
+
 
 def tmux_send(string, conformation_symbol='Enter', target_pane='*'):
     subprocess.run(
@@ -75,11 +124,13 @@ def tmux_send(string, conformation_symbol='Enter', target_pane='*'):
         stderr=subprocess.DEVNULL
     )
 
+
 def tmux_read_screen():
     output_b = subprocess.run(['tmux', 'capture-pane', '-J', '-p'], stdout=subprocess.PIPE).stdout
     output_list_temp = output_b.decode('UTF-8').split('\n')
     output_list = [line for line in output_list_temp if len(line) != 0]
     return output_list
+
 
 def tmux_wait_for(string, timeout=3):
     found = False
@@ -96,6 +147,7 @@ def tmux_wait_for(string, timeout=3):
 
     return found
 
+
 def send_login_pwd(login_number):
     home = str(Path.home())
     with open(f'{home}/tmuxNOC/.logins', 'r') as f:
@@ -110,6 +162,7 @@ def send_login_pwd(login_number):
         tmux_send(password)
     else:
         subprocess.run(['tmux', 'display-message', 'Password prompt not found.'])
+
 
 def send_with_delay(pane_id):
     print(f'{ANSIColors.WARNING}What to send? To end list enter a single dot{ANSIColors.ENDC}\n.')
@@ -170,6 +223,7 @@ def send_with_delay(pane_id):
         if not index + 1 == len(commands):
             time.sleep(line_delay / 1000)
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Connect to telnet or ssh from tmux.')
     parser.add_argument('type', choices=[
@@ -177,10 +231,18 @@ if __name__ == "__main__":
         'send_with_delay',
         'setup_telnet',
         'connect_telnet',
+        'pipe',
+        'toggle_log',
     ])
     parser.add_argument('--login_number', nargs='?')
     parser.add_argument('--host', nargs='?')
     parser.add_argument('--pane_id', nargs='?')
+    parser.add_argument(
+        '-i',
+        '--input',
+        type=argparse.FileType('r'),
+        default=(None if sys.stdin.isatty() else sys.stdin)
+    )
     args = parser.parse_args()
 
     if args.type == 'login':
@@ -191,3 +253,7 @@ if __name__ == "__main__":
         setup_telnet()
     elif args.type == 'connect_telnet':
         connect_telnet(args.host)
+    elif args.type == 'pipe':
+        write_log(args.input)
+    elif args.type == 'toggle_log':
+        pane_log('l', 'local')
