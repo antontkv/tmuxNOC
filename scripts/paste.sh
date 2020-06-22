@@ -19,7 +19,12 @@ fi
 
 if [ -n "$paste_backend" ]; then
   if [ "$1" = "tmux" ]; then
-    tmux set-buffer "$($paste_backend)"
+    if [ "$paste_backend" = "paste.exe" ]; then
+      windows_clip_without_cr=`$paste_backend | tr -d "\r"`
+      tmux set-buffer "$windows_clip_without_cr"
+    else
+      tmux set-buffer "$($paste_backend)"
+    fi
   else
     printf "%s" "$($paste_backend)"
   fi
