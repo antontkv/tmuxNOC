@@ -58,8 +58,16 @@ def save_pane_history(output_file_name, pane_id='*', pipe='o', only_once=False):
 
 def pane_log(connection_type, host):
     home = str(Path.home())
-    timestamp = datetime.datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
-    log_filename = f'{home}/tmuxNOC/local/log/{timestamp}---{connection_type}_{host}.log'
+    sessions_metadata = load_sessions_metadata()
+    if connection_type == 'l':
+        last_session_index = '--'
+    else:
+        last_session_index = sessions_metadata['last_session_index']
+    year = datetime.datetime.now().strftime("%Y")
+    month = datetime.datetime.now().strftime("%m")
+    day = datetime.datetime.now().strftime("%d")
+    current_time = datetime.datetime.now().strftime("%H_%M_%S")
+    log_filename = f'{home}/tmuxNOC/local/log/{year}/{month}/{day}/{current_time}---!{last_session_index}_{connection_type}_{host}.log'
     create_dir(log_filename)
 
     subprocess.run([
@@ -71,7 +79,7 @@ def pane_log(connection_type, host):
     ])
 
 
-def load_sessions():
+def load_sessions_metadata():
     home = str(Path.home())
     with open(f'{home}/tmuxNOC/sessions.json', 'r') as f:
         sessions = json.load(f)
@@ -80,24 +88,33 @@ def load_sessions():
 
 def save_session(connection_type, host):
     home = str(Path.home())
-    sessions = load_sessions()
-    session = {
-        'connection_type': connection_type,
-        'host': host,
-        'time': datetime.datetime.now().strftime("%d.%m.%Y %H:%M:%S")
-    }
-    sessions[time.time()] = session
+    sessions_metadata = load_sessions_metadata()
+    if 'last_session_index' in sessions_metadata:
+        sessions_metadata['last_session_index'] += 1
+    else:
+        sessions_metadata['last_session_index'] = 1
     if connection_type == 'telnet':
-        sessions['last_telnet_session'] = host
+        sessions_metadata['last_telnet_session'] = host
     with open(f'{home}/tmuxNOC/sessions.json', 'w') as f:
-        json.dump(sessions, f)
+        json.dump(sessions_metadata, f)
+
+    sessions_history_filename = f'{home}/tmuxNOC/local/sessions_history.log'
+    with open(sessions_history_filename, 'r+') as sessions_history_file:
+        sessions_history = sessions_history_file.read()
+        current_date = datetime.datetime.now().strftime("%d.%m.%Y")
+        current_time = datetime.datetime.now().strftime("%H:%M:%S")
+        if f'# {current_date}' not in sessions_history:
+            sessions_history_file.write(f'# {current_date}\n')
+        sessions_history_file.write(
+            f'    {sessions_metadata["last_session_index"]} {current_time} {connection_type} {host}\n'
+        )
 
 
 def setup_telnet():
     home = str(Path.home())
-    sessions = load_sessions()
-    if 'last_telnet_session' in sessions:
-        hostname = sessions['last_telnet_session']
+    sessions_metadata = load_sessions_metadata()
+    if 'last_telnet_session' in sessions_metadata:
+        hostname = sessions_metadata['last_telnet_session']
     else:
         hostname = 'hostname'
     command = [
@@ -123,8 +140,8 @@ def connect_telnet(host):
               --rcfile {home}/tmuxNOC/misc/tmux_noc_bashrc'
         ]
     )
-    pane_log('t', host)
     save_session('telnet', host)
+    pane_log('t', host)
 
 
 def tmux_send(string, conformation_symbol='Enter', target_pane='*'):
