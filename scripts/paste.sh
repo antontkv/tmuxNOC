@@ -18,15 +18,16 @@ if is_app_installed paste.exe; then
 fi
 
 if [ -n "$paste_backend" ]; then
-  if [ "$1" = "tmux" ]; then
-    if [ "$paste_backend" = "paste.exe" ]; then
-      windows_clip_without_cr=`$paste_backend | tr -d "\r"`
-      tmux set-buffer "$windows_clip_without_cr"
-    else
-      tmux set-buffer "$($paste_backend)"
-    fi
+  if [ "$paste_backend" = "paste.exe" ]; then
+    clipboard_content=`$paste_backend | tr -d "\r"`
   else
-    printf "%s" "$($paste_backend)"
+    clipboard_content=`$paste_backend`
+  fi
+
+  if [ "$1" = "tmux" ]; then
+    tmux set-buffer "$clipboard_content"
+  else
+    printf "%s" "$clipboard_content"
   fi
   exit;
 fi
