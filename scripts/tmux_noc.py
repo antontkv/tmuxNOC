@@ -93,6 +93,21 @@ def save_session(connection_type, host):
         sessions_metadata['last_session_index'] += 1
     else:
         sessions_metadata['last_session_index'] = 1
+    if 'last_five_sessions' in sessions_metadata:
+        last_five_sessions = sessions_metadata['last_five_sessions']
+        if host not in str(last_five_sessions):
+            if len(last_five_sessions) >= 5:
+                last_five_sessions.pop(0)
+            last_five_sessions.append({
+                'connection_type': connection_type,
+                'host': host
+            })
+    else:
+        last_five_sessions = [{
+            'connection_type': connection_type,
+            'host': host
+        }]
+    sessions_metadata['last_five_sessions'] = last_five_sessions
     if connection_type == 'telnet':
         sessions_metadata['last_telnet_session'] = host
     with open(f'{home}/tmuxNOC/sessions.json', 'w') as f:
@@ -108,6 +123,50 @@ def save_session(connection_type, host):
         sessions_history_file.write(
             f'    {sessions_metadata["last_session_index"]} {current_time} {connection_type} {host}\n'
         )
+
+
+def setup_connection():
+    home = str(Path.home())
+    clipboard = subprocess.run(
+        f'{home}/tmuxNOC/scripts/paste.sh', stdout=subprocess.PIPE
+    ).stdout.decode('UTF-8').split('\n')[0]
+    clipboard = [word for word in clipboard.split(' ') if len(word) != 0]
+    if len(clipboard) != 0:
+        clipboard = clipboard[0]
+    else:
+        clipboard = None
+
+    sessions_metadata = load_sessions_metadata()
+    if 'last_five_sessions' in sessions_metadata:
+        last_five_sessions = sessions_metadata['last_five_sessions']
+        last_sessions = ['']
+        for index, session in enumerate(last_five_sessions):
+            connection_type = session['connection_type']
+            host = session['host']
+            last_sessions.append(f'{connection_type} {host}')
+            last_sessions.append(f'{index + 1}')
+            last_sessions.append(
+                f'run "{home}/tmuxNOC/scripts/tmux_noc.py connect_{connection_type} --host {host}"'
+            )
+    else:
+        last_sessions = None
+
+    command = [
+        'tmux', 'display-menu',
+        '-T', '#[align=centre]NOC',
+        '-x', 'P',
+        '-y', 'S',
+        'New Telnet', 'q', f'run "{home}/tmuxNOC/scripts/tmux_noc.py setup_telnet"',
+    ]
+    if last_sessions is not None:
+        command += last_sessions
+    if clipboard is not None:
+        command += [
+            '',
+            f'telnet {clipboard}', 'v',
+            f'run "{home}/tmuxNOC/scripts/tmux_noc.py connect_telnet --host {clipboard}"'
+        ]
+    subprocess.run(command)
 
 
 def setup_telnet():
@@ -256,6 +315,7 @@ if __name__ == "__main__":
     parser.add_argument('type', choices=[
         'login',
         'send_with_delay',
+        'setup_connection',
         'setup_telnet',
         'connect_telnet',
         'toggle_log',
@@ -277,6 +337,8 @@ if __name__ == "__main__":
         send_login_pwd(args.login_number)
     elif args.type == 'send_with_delay':
         send_with_delay(args.pane_id)
+    elif args.type == 'setup_connection':
+        setup_connection()
     elif args.type == 'setup_telnet':
         setup_telnet()
     elif args.type == 'connect_telnet':
