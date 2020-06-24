@@ -10,6 +10,7 @@ from errno import EEXIST
 import sys
 import re
 
+
 class ANSIColors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
@@ -28,24 +29,32 @@ def create_dir(filename):
     if not os.path.exists(os.path.dirname(filename)):
         try:
             os.makedirs(os.path.dirname(filename))
-        except OSError as exc: # Guard against race condition
+        except OSError as exc:  # Guard against race condition
             if exc.errno != EEXIST:
                 raise
 
 
-def escape_ansi(line):
-    """
-    Removes ANSI escape characters from line.
-    Credits goes to https://stackoverflow.com/a/38662876
-    """
-    line = line.replace('\r', '').replace('\n', '')
-    ansi_escape = re.compile(r'(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]')
-    return ansi_escape.sub('', line)
+def record_history(output_file_name, pane_id='*', pipe='o', only_once=False):
+    for _ in pipe:
+        output_b = subprocess.run([
+            'tmux',
+            'capture-pane',
+            '-J',
+            '-p',
+            '-S',
+            '-20000',
+            '-t',
+            pane_id,
+        ], stdout=subprocess.PIPE).stdout
+        output = output_b.decode('UTF-8')
+        if output == '':
+            continue
+        with open(output_file_name, 'w') as f:
+            f.write(output)
+        if only_once:
+            break
+        time.sleep(1)
 
-
-def write_log(pipe):
-    for line in pipe:
-        print(escape_ansi(line), flush=True)
 
 def pane_log(connection_type, host):
     home = str(Path.home())
@@ -57,7 +66,8 @@ def pane_log(connection_type, host):
         'tmux',
         'pipe-pane',
         '-o',
-        f'{home}/tmuxNOC/scripts/tmux_noc.py pipe -i - >> {log_filename}'
+        f'{home}/tmuxNOC/scripts/tmux_noc.py record_history --file_name {log_filename}\
+          --pane_id #{{pane_id}} -i -'
     ])
 
 
@@ -125,18 +135,18 @@ def tmux_send(string, conformation_symbol='Enter', target_pane='*'):
     )
 
 
-def tmux_read_screen():
-    output_b = subprocess.run(['tmux', 'capture-pane', '-J', '-p'], stdout=subprocess.PIPE).stdout
-    output_list_temp = output_b.decode('UTF-8').split('\n')
-    output_list = [line for line in output_list_temp if len(line) != 0]
-    return output_list
-
-
 def tmux_wait_for(string, timeout=3):
     found = False
     for _ in range(timeout*10):
-        output_lines = tmux_read_screen()
-        for line in output_lines[-5:]:
+        screen_content_b = subprocess.run([
+            'tmux',
+            'capture-pane',
+            '-J',
+            '-p'
+        ], stdout=subprocess.PIPE).stdout
+        screen_content_list = screen_content_b.decode('UTF-8').split('\n')
+        screen_content_list_filtered = [line for line in screen_content_list if len(line) != 0]
+        for line in screen_content_list_filtered[-2:]:
             if string in line:
                 found = True
                 break
@@ -231,12 +241,13 @@ if __name__ == "__main__":
         'send_with_delay',
         'setup_telnet',
         'connect_telnet',
-        'pipe',
         'toggle_log',
+        'record_history',
     ])
     parser.add_argument('--login_number', nargs='?')
     parser.add_argument('--host', nargs='?')
     parser.add_argument('--pane_id', nargs='?')
+    parser.add_argument('--file_name', nargs='?')
     parser.add_argument(
         '-i',
         '--input',
@@ -253,7 +264,7 @@ if __name__ == "__main__":
         setup_telnet()
     elif args.type == 'connect_telnet':
         connect_telnet(args.host)
-    elif args.type == 'pipe':
-        write_log(args.input)
     elif args.type == 'toggle_log':
         pane_log('l', 'local')
+    elif args.type == 'record_history':
+        record_history(args.file_name, args.pane_id, args.input)
