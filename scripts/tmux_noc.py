@@ -34,7 +34,7 @@ def create_dir(filename):
                 raise
 
 
-def record_history(output_file_name, pane_id='*', pipe='o', only_once=False):
+def save_pane_history(output_file_name, pane_id='*', pipe='o', only_once=False):
     for _ in pipe:
         output_b = subprocess.run([
             'tmux',
@@ -66,7 +66,7 @@ def pane_log(connection_type, host):
         'tmux',
         'pipe-pane',
         '-o',
-        f'{home}/tmuxNOC/scripts/tmux_noc.py record_history --file_name {log_filename}\
+        f'{home}/tmuxNOC/scripts/tmux_noc.py save_pane_history --file_name {log_filename}\
           --pane_id #{{pane_id}} -i -'
     ])
 
@@ -242,7 +242,7 @@ if __name__ == "__main__":
         'setup_telnet',
         'connect_telnet',
         'toggle_log',
-        'record_history',
+        'save_pane_history',
     ])
     parser.add_argument('--login_number', nargs='?')
     parser.add_argument('--host', nargs='?')
@@ -266,5 +266,5 @@ if __name__ == "__main__":
         connect_telnet(args.host)
     elif args.type == 'toggle_log':
         pane_log('l', 'local')
-    elif args.type == 'record_history':
-        record_history(args.file_name, args.pane_id, args.input)
+    elif args.type == 'save_pane_history':
+        save_pane_history(args.file_name, args.pane_id, args.input)
