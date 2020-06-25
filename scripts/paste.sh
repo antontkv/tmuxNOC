@@ -25,7 +25,7 @@ if [ -n "$paste_backend" ]; then
   fi
 
   if [ "$1" = "tmux" ]; then
-    tmux set-buffer "$clipboard_content"
+    printf "%s" "$clipboard_content" | tmux load-buffer -
   else
     printf "%s" "$clipboard_content"
   fi
