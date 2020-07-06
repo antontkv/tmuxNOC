@@ -121,7 +121,7 @@ def save_session(connection_type, host):
         if f'# {current_date}' not in sessions_history:
             sessions_history_file.write(f'# {current_date}\n')
         sessions_history_file.write(
-            f'    {sessions_metadata["last_session_index"]} {current_time} {connection_type} {host}\n'
+            f'    {sessions_metadata["last_session_index"]} {current_date} {current_time} {connection_type} {host}\n'
         )
 
 
@@ -156,6 +156,8 @@ def setup_connection():
         '-T', '#[align=centre]NOC',
         '-x', 'P',
         '-y', 'S',
+        'Show Sessions History', 'h', 'split-window -h "less +G $HOME/tmuxNOC/local/sessions_history.log"',
+        '',
         'New Telnet', 'q', f'run "{home}/tmuxNOC/scripts/tmux_noc.py setup_telnet"',
     ]
     if last_sessions is not None:
@@ -203,7 +205,7 @@ def connect_telnet(host):
     pane_log('t', host)
 
 
-def tmux_send(string, conformation_symbol='Enter', target_pane='*'):
+def tmux_send(string, conformation_symbol='Enter', target_pane=':'):
     subprocess.run(
         ['tmux', 'send-keys', '-t', target_pane, string, f'{conformation_symbol}'],
         stdout=subprocess.DEVNULL,
