@@ -157,6 +157,7 @@ def setup_connection():
         '-x', 'P',
         '-y', 'S',
         'Show Sessions History', 'h', 'split-window -h "less +G $HOME/tmuxNOC/local/sessions_history.log"',
+        'Open Log File', 'l', f'command-prompt -p "Open Log Number:" \'run "{home}/tmuxNOC/scripts/tmux_noc.py open_log --history_index %1"\'',
         'Search in Logs', 'L', f'split-window -v "{home}/tmuxNOC/scripts/tmux_noc.py search_logs"',
         '',
         'New Telnet', 'q', f'run "{home}/tmuxNOC/scripts/tmux_noc.py setup_telnet"',
@@ -175,10 +176,23 @@ def search_logs():
     home = str(Path.home())
     query = input('grep in logs: ')
     subprocess.run(
-        ['grep', '--color=always', '-r', query, '.'],
+        ['grep', '--color=always', '-n', '-r', '-A 2', '-B 2', query, '.'],
         cwd=f'{home}/tmuxNOC/local/log/'
     )
     search_logs()
+
+def open_log(history_index):
+    home = str(Path.home())
+    log_file = None
+    for path in Path(f'{home}/tmuxNOC/local/log').rglob(f'*{history_index}*'):
+        log_file = str(path)
+    if log_file is None:
+        subprocess.run(
+            ['tmux', 'display-message', f'Log file with index {history_index} not found.']
+        )
+    else:
+        host = log_file.split('_')[-1].replace('.log', '')
+        subprocess.run(['tmux', 'new-window', '-n', f'Log {host}', f'less -M "{log_file}"'])
 
 def setup_telnet():
     home = str(Path.home())
@@ -332,6 +346,7 @@ if __name__ == "__main__":
         'toggle_log',
         'save_pane_history',
         'search_logs',
+        'open_log',
     ])
     parser.add_argument('--login_number', nargs='?')
     parser.add_argument('--host', nargs='?')
@@ -343,6 +358,7 @@ if __name__ == "__main__":
         type=argparse.FileType('r'),
         default=(None if sys.stdin.isatty() else sys.stdin)
     )
+    parser.add_argument('--history_index', nargs='?')
     args = parser.parse_args()
 
     if args.type == 'login':
@@ -361,3 +377,5 @@ if __name__ == "__main__":
         save_pane_history(args.file_name, args.pane_id, args.input)
     elif args.type == 'search_logs':
         search_logs()
+    elif args.type == 'open_log':
+        open_log(args.history_index)
