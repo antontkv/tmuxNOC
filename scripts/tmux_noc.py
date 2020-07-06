@@ -79,6 +79,30 @@ def pane_log(connection_type, host):
     ])
 
 
+def search_logs():
+    home = str(Path.home())
+    query = input('grep in logs: ')
+    subprocess.run(
+        ['grep', '--color=always', '-n', '-r', '-A 2', '-B 2', query, '.'],
+        cwd=f'{home}/tmuxNOC/local/log/'
+    )
+    search_logs()
+
+
+def open_log(history_index):
+    home = str(Path.home())
+    log_file = None
+    for path in Path(f'{home}/tmuxNOC/local/log').rglob(f'*{history_index}*'):
+        log_file = str(path)
+    if log_file is None:
+        subprocess.run(
+            ['tmux', 'display-message', f'Log file with index {history_index} not found.']
+        )
+    else:
+        host = log_file.split('_')[-1].replace('.log', '')
+        subprocess.run(['tmux', 'new-window', '-n', f'Log {host}', f'less -M "{log_file}"'])
+
+
 def load_sessions_metadata():
     home = str(Path.home())
     with open(f'{home}/tmuxNOC/sessions.json', 'r') as f:
@@ -144,7 +168,7 @@ def save_session(connection_type, host):
         )
 
 
-def setup_connection():
+def noc_menu():
     home = str(Path.home())
     clipboard = subprocess.run(
         f'{home}/tmuxNOC/scripts/paste.sh', stdout=subprocess.PIPE
@@ -191,27 +215,6 @@ def setup_connection():
         ]
     subprocess.run(command)
 
-def search_logs():
-    home = str(Path.home())
-    query = input('grep in logs: ')
-    subprocess.run(
-        ['grep', '--color=always', '-n', '-r', '-A 2', '-B 2', query, '.'],
-        cwd=f'{home}/tmuxNOC/local/log/'
-    )
-    search_logs()
-
-def open_log(history_index):
-    home = str(Path.home())
-    log_file = None
-    for path in Path(f'{home}/tmuxNOC/local/log').rglob(f'*{history_index}*'):
-        log_file = str(path)
-    if log_file is None:
-        subprocess.run(
-            ['tmux', 'display-message', f'Log file with index {history_index} not found.']
-        )
-    else:
-        host = log_file.split('_')[-1].replace('.log', '')
-        subprocess.run(['tmux', 'new-window', '-n', f'Log {host}', f'less -M "{log_file}"'])
 
 def setup_telnet():
     home = str(Path.home())
@@ -359,7 +362,7 @@ if __name__ == "__main__":
     parser.add_argument('type', choices=[
         'login',
         'send_with_delay',
-        'setup_connection',
+        'noc_menu',
         'setup_telnet',
         'connect_telnet',
         'toggle_log',
@@ -384,8 +387,8 @@ if __name__ == "__main__":
         send_login_pwd(args.login_number)
     elif args.type == 'send_with_delay':
         send_with_delay(args.pane_id)
-    elif args.type == 'setup_connection':
-        setup_connection()
+    elif args.type == 'noc_menu':
+        noc_menu()
     elif args.type == 'setup_telnet':
         setup_telnet()
     elif args.type == 'connect_telnet':
