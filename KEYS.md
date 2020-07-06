@@ -4,20 +4,20 @@ Keyboard shortcuts for Copy mode.
 
 ## Movement
 
-| Key                 | Description                                                  |
-| ------------------- | ------------------------------------------------------------ |
-| `j` or `Down`       | Move cursor down                                             |
-| `k` or `Up`         | Move cursor up                                               |
-| `h` or `Left`       | Move cursor left                                             |
-| `l` or `Right`      | Move cursor right                                            |
-| `C-b` or `PageUp`   | Scroll page up                                               |
-| `C-f` or `PageDown` | Scroll page down                                             |
-| `C-k`               | Scroll half page up                                          |
-| `C-j`               | Scroll half page down                                        |
-| `K` or `C-Up`       | Scroll one line up                                           |
-| `J` or `C-Down`     | Scroll one line down                                         |
-| `g`                 | Go to the top of the terminal history                        |
-| `G`                 | Go to the bottom of the terminal history                     |
+| Key                 | Description                              |
+| ------------------- | ---------------------------------------- |
+| `j` or `Down`       | Move cursor down                         |
+| `k` or `Up`         | Move cursor up                           |
+| `h` or `Left`       | Move cursor left                         |
+| `l` or `Right`      | Move cursor right                        |
+| `C-b` or `PageUp`   | Scroll page up                           |
+| `C-f` or `PageDown` | Scroll page down                         |
+| `C-k`               | Scroll half page up                      |
+| `C-j`               | Scroll half page down                    |
+| `M-k` or `C-Up`     | Scroll one line up                       |
+| `M-j` or `C-Down`   | Scroll one line down                     |
+| `g`                 | Go to the top of the terminal history    |
+| `G`                 | Go to the bottom of the terminal history |
 
 ## Selection and copy
 
