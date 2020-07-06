@@ -157,6 +157,7 @@ def setup_connection():
         '-x', 'P',
         '-y', 'S',
         'Show Sessions History', 'h', 'split-window -h "less +G $HOME/tmuxNOC/local/sessions_history.log"',
+        'Search in Logs', 'L', f'split-window -v "{home}/tmuxNOC/scripts/tmux_noc.py search_logs"',
         '',
         'New Telnet', 'q', f'run "{home}/tmuxNOC/scripts/tmux_noc.py setup_telnet"',
     ]
@@ -170,6 +171,14 @@ def setup_connection():
         ]
     subprocess.run(command)
 
+def search_logs():
+    home = str(Path.home())
+    query = input('grep in logs: ')
+    subprocess.run(
+        ['grep', '--color=always', '-r', query, '.'],
+        cwd=f'{home}/tmuxNOC/local/log/'
+    )
+    search_logs()
 
 def setup_telnet():
     home = str(Path.home())
@@ -322,6 +331,7 @@ if __name__ == "__main__":
         'connect_telnet',
         'toggle_log',
         'save_pane_history',
+        'search_logs',
     ])
     parser.add_argument('--login_number', nargs='?')
     parser.add_argument('--host', nargs='?')
@@ -349,3 +359,5 @@ if __name__ == "__main__":
         pane_log('l', 'local')
     elif args.type == 'save_pane_history':
         save_pane_history(args.file_name, args.pane_id, args.input)
+    elif args.type == 'search_logs':
+        search_logs()
