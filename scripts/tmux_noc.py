@@ -97,11 +97,30 @@ def save_session(connection_type, host):
         last_five_sessions = sessions_metadata['last_five_sessions']
         if host not in str(last_five_sessions):
             if len(last_five_sessions) >= 5:
-                last_five_sessions.pop(0)
-            last_five_sessions.append({
+                last_five_sessions.pop(4)
+            last_five_sessions.insert(0, {
                 'connection_type': connection_type,
                 'host': host
             })
+        else:
+            last_connection = None
+            for index, session in enumerate(last_five_sessions):
+                if connection_type == session['connection_type'] and host == session['host']:
+                    last_connection = index
+            if last_connection is None:
+                if len(last_five_sessions) >= 5:
+                    last_five_sessions.pop(4)
+                last_five_sessions.insert(0, {
+                    'connection_type': connection_type,
+                    'host': host
+                })
+            else:
+                last_five_sessions.pop(last_connection)
+                last_five_sessions.insert(0, {
+                    'connection_type': connection_type,
+                    'host': host
+                })
+
     else:
         last_five_sessions = [{
             'connection_type': connection_type,
