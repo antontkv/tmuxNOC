@@ -151,8 +151,7 @@ def save_session(connection_type, host):
             'host': host
         }]
     sessions_metadata['last_five_sessions'] = last_five_sessions
-    if connection_type == 'telnet':
-        sessions_metadata['last_telnet_session'] = host
+    sessions_metadata[f'last_{connection_type}_session'] = host
     with open(f'{home}/tmuxNOC/sessions.json', 'w') as f:
         json.dump(sessions_metadata, f)
 
@@ -168,16 +167,57 @@ def save_session(connection_type, host):
         )
 
 
+def ssh_config_hosts():
+    home = str(Path.home())
+    if not os.path.exists(f'{home}/.ssh/config'):
+        return 1
+
+    with open(f'{home}/.ssh/config') as f:
+        ssh_config = f.readlines()
+    hosts = []
+    for line in ssh_config:
+        if line.startswith('Host'):
+            hosts.append(line.replace('Host ', '').replace('\n', ''))
+    return hosts
+
+
+def ssh_menu():
+    home = str(Path.home())
+    command = [
+        'tmux', 'display-menu',
+        '-T', '#[align=centre]SSH Config Hosts',
+        '-x', 'P',
+        '-y', 'S',
+    ]
+    ssh_hosts_list = ssh_config_hosts()
+    if ssh_hosts_list != 1:
+        for index, host in enumerate(ssh_hosts_list):
+            index += 1
+            if index == 10:
+                index = 0
+            elif 20 > index > 10:
+                index = f'M-{index - 10}'
+            elif index == 20:
+                index = 'M-0'
+            elif 30 > index > 20:
+                index = f'C-{index - 20}'
+            elif index == 30:
+                index = 'C-0'
+            command += [
+                host,
+                str(index),
+                f'run "{home}/tmuxNOC/scripts/tmux_noc.py connect_ssh --host {host}"'
+            ]
+    subprocess.run(command)
+
+
 def noc_menu():
     home = str(Path.home())
-    clipboard = subprocess.run(
-        f'{home}/tmuxNOC/scripts/paste.sh', stdout=subprocess.PIPE
-    ).stdout.decode('UTF-8').split('\n')[0]
-    clipboard = [word for word in clipboard.split(' ') if len(word) != 0]
-    if len(clipboard) != 0:
-        clipboard = clipboard[0]
+
+    if ssh_config_hosts() == 1:
+        ssh_hosts = False
     else:
-        clipboard = None
+        ssh_hosts = True
 
     sessions_metadata = load_sessions_metadata()
     if 'last_five_sessions' in sessions_metadata:
@@ -194,6 +234,20 @@ def noc_menu():
     else:
         last_sessions = None
 
+    clipboard = subprocess.run(
+        f'{home}/tmuxNOC/scripts/paste.sh', stdout=subprocess.PIPE
+    ).stdout.decode('UTF-8').split('\n')[0]
+    clipboard = [word for word in clipboard.split(' ') if len(word) != 0]
+    if len(clipboard) != 0:
+        clipboard = [
+            '',
+            f'telnet {clipboard[0]}', 'v', f'run "{home}/tmuxNOC/scripts/tmux_noc.py connect_telnet --host {clipboard[0]}"',
+            f'ssh {clipboard[0]}', 'V', f'run "{home}/tmuxNOC/scripts/tmux_noc.py connect_ssh --host {clipboard[0]}"',
+        ]
+    else:
+        clipboard = None
+
+
     command = [
         'tmux', 'display-menu',
         '-T', '#[align=centre]NOC',
@@ -203,34 +257,37 @@ def noc_menu():
         'Open Log File', 'l', f'command-prompt -p "Open Log Number:" \'run "{home}/tmuxNOC/scripts/tmux_noc.py open_log --history_index %1"\'',
         'Search in Logs', 'L', f'split-window -v "{home}/tmuxNOC/scripts/tmux_noc.py search_logs"',
         '',
-        'New Telnet', 'q', f'run "{home}/tmuxNOC/scripts/tmux_noc.py setup_telnet"',
+        'Send Commands with Delay', 'd', f'split-window -h "{home}/tmuxNOC/scripts/tmux_noc.py send_with_delay --pane_id $(tmux display -pt - \'#{{pane_id}}\')"',
+        '',
+        'New Telnet', 'q', f'run "{home}/tmuxNOC/scripts/tmux_noc.py setup_connection --connection_type telnet"',
+        'New SSH', 's', f'run "{home}/tmuxNOC/scripts/tmux_noc.py setup_connection --connection_type ssh"',
     ]
+    if ssh_hosts:
+        command += [
+            'SSH Config Hosts', 'S', f'run "{home}/tmuxNOC/scripts/tmux_noc.py ssh_menu"',
+        ]
     if last_sessions is not None:
         command += last_sessions
     if clipboard is not None:
-        command += [
-            '',
-            f'telnet {clipboard}', 'v',
-            f'run "{home}/tmuxNOC/scripts/tmux_noc.py connect_telnet --host {clipboard}"'
-        ]
+        command += clipboard
     subprocess.run(command)
 
 
-def setup_telnet():
+def setup_connection(connection_type):
     home = str(Path.home())
     sessions_metadata = load_sessions_metadata()
-    if 'last_telnet_session' in sessions_metadata:
-        hostname = sessions_metadata['last_telnet_session']
+    if f'last_{connection_type}_session' in sessions_metadata:
+        hostname = sessions_metadata[f'last_{connection_type}_session']
     else:
         hostname = 'hostname'
     command = [
         'tmux',
         'command-prompt',
         '-p',
-        'telnet:',
+        f'{connection_type}:',
         '-I',
         hostname,
-        f'run "{home}/tmuxNOC/scripts/tmux_noc.py connect_telnet --host %1"'
+        f'run "{home}/tmuxNOC/scripts/tmux_noc.py connect_{connection_type} --host %1"'
     ]
     subprocess.run(command)
 
@@ -241,13 +298,26 @@ def connect_telnet(host):
         [
             'tmux',
             'new-window',
-            '-n', host,
+            '-n', f't/{host}',
             f'PROMPT_COMMAND="{home}/tmuxNOC/scripts/kbdfix.sh telnet {host}";TERM=vt100-w bash \
               --rcfile {home}/tmuxNOC/misc/tmux_noc_bashrc'
         ]
     )
     save_session('telnet', host)
     pane_log('t', host)
+
+def connect_ssh(host):
+    home = str(Path.home())
+    subprocess.run(
+        [
+            'tmux',
+            'new-window',
+            '-n', f's/{host}',
+            f'PROMPT_COMMAND="ssh {host}" bash --rcfile {home}/tmuxNOC/misc/tmux_noc_bashrc'
+        ]
+    )
+    save_session('ssh', host)
+    pane_log('s', host)
 
 
 def tmux_send(string, conformation_symbol='Enter', target_pane=':'):
@@ -363,8 +433,10 @@ if __name__ == "__main__":
         'login',
         'send_with_delay',
         'noc_menu',
-        'setup_telnet',
+        'ssh_menu',
+        'setup_connection',
         'connect_telnet',
+        'connect_ssh',
         'toggle_log',
         'save_pane_history',
         'search_logs',
@@ -372,6 +444,7 @@ if __name__ == "__main__":
     ])
     parser.add_argument('--login_number', nargs='?')
     parser.add_argument('--host', nargs='?')
+    parser.add_argument('--connection_type', nargs='?')
     parser.add_argument('--pane_id', nargs='?')
     parser.add_argument('--file_name', nargs='?')
     parser.add_argument(
@@ -389,10 +462,14 @@ if __name__ == "__main__":
         send_with_delay(args.pane_id)
     elif args.type == 'noc_menu':
         noc_menu()
-    elif args.type == 'setup_telnet':
-        setup_telnet()
+    elif args.type == 'ssh_menu':
+        ssh_menu()
+    elif args.type == 'setup_connection':
+        setup_connection(args.connection_type)
     elif args.type == 'connect_telnet':
         connect_telnet(args.host)
+    elif args.type == 'connect_ssh':
+        connect_ssh(args.host)
     elif args.type == 'toggle_log':
         pane_log('l', 'local')
     elif args.type == 'save_pane_history':
