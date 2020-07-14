@@ -209,7 +209,7 @@ def ssh_menu():
             command += [
                 host,
                 str(index),
-                f'run "{home}/tmuxNOC/scripts/tmux_noc.py connect_ssh --host {host}"'
+                f'run "{home}/tmuxNOC/scripts/tmux_noc.py connect_ssh --host \'{host}\'"'
             ]
     subprocess.run(command)
 
@@ -232,7 +232,7 @@ def noc_menu():
             last_sessions.append(f'{connection_type} {host}')
             last_sessions.append(f'{index + 1}')
             last_sessions.append(
-                f'run "{home}/tmuxNOC/scripts/tmux_noc.py connect_{connection_type} --host {host}"'
+                f'run "{home}/tmuxNOC/scripts/tmux_noc.py connect_{connection_type} --host \'{host}\'"'
             )
     else:
         last_sessions = None
@@ -244,8 +244,8 @@ def noc_menu():
     if len(clipboard) != 0:
         clipboard = [
             '',
-            f'telnet {clipboard[0]}', 'v', f'run "{home}/tmuxNOC/scripts/tmux_noc.py connect_telnet --host {clipboard[0]}"',
-            f'ssh {clipboard[0]}', 'V', f'run "{home}/tmuxNOC/scripts/tmux_noc.py connect_ssh --host {clipboard[0]}"',
+            f'telnet {clipboard[0]}', 'v', f'run "{home}/tmuxNOC/scripts/tmux_noc.py connect_telnet --host \'{clipboard[0]}\'"',
+            f'ssh {clipboard[0]}', 'V', f'run "{home}/tmuxNOC/scripts/tmux_noc.py connect_ssh --host \'{clipboard[0]}\'"',
         ]
     else:
         clipboard = None
