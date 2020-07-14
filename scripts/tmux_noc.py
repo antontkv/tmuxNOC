@@ -287,7 +287,7 @@ def setup_connection(connection_type):
         f'{connection_type}:',
         '-I',
         hostname,
-        f'run "{home}/tmuxNOC/scripts/tmux_noc.py connect_{connection_type} --host %1"'
+        f'run "{home}/tmuxNOC/scripts/tmux_noc.py connect_{connection_type} --host \'%1\'"'
     ]
     subprocess.run(command)
 
