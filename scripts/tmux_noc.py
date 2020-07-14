@@ -81,11 +81,14 @@ def pane_log(connection_type, host):
 
 def search_logs():
     home = str(Path.home())
-    query = input('grep in logs: ')
-    subprocess.run(
-        ['grep', '--color=always', '-n', '-r', '-A 2', '-B 2', query, '.'],
-        cwd=f'{home}/tmuxNOC/local/log/'
-    )
+    query = input(f'{ANSIColors.WARNING}grep in logs:{ANSIColors.ENDC} ')
+    if not query.isspace() and query != "":
+        subprocess.run(
+            ['grep', '--color=always', '-n', '-r', query, '.'],
+            cwd=f'{home}/tmuxNOC/local/log/'
+        )
+    else:
+        print(f'{ANSIColors.FAIL}Empty query.{ANSIColors.ENDC}')
     search_logs()
 
 
@@ -246,7 +249,6 @@ def noc_menu():
         ]
     else:
         clipboard = None
-
 
     command = [
         'tmux', 'display-menu',
