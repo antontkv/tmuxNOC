@@ -104,6 +104,7 @@ def open_log(history_index):
     else:
         host = log_file.split('_')[-1].replace('.log', '')
         subprocess.run(['tmux', 'new-window', '-n', f'Log {host}', f'less -M "{log_file}"'])
+        subprocess.run(['tmux', 'select-pane', '-T', f'Logfile: {log_file}'])
 
 
 def load_sessions_metadata():
@@ -284,17 +285,20 @@ def noc_menu():
         '-y', 'S',
         # -----
         'Show Sessions History', 'h',
-        'split-window -h "less +G $HOME/tmuxNOC/local/sessions_history.log"',
+        ('split-window -h "less +G $HOME/tmuxNOC/local/sessions_history.log"; '
+         'select-pane -T "Sessions History"'),
 
         'Open Log File', 'l',
         (f'command-prompt -p "Open Log Number:" '
          f'\'run "{home}/tmuxNOC/scripts/tmux_noc.py open_log --history_index %1"\''),
 
-        'Search in Logs', 'L', f'split-window -v "{home}/tmuxNOC/scripts/tmux_noc.py search_logs"',
+        'Search in Logs', 'L',
+        (f'split-window -v "{home}/tmuxNOC/scripts/tmux_noc.py search_logs"; '
+         'select-pane -T "grep in logs"'),
         # -----
         '',
         'Send Commands with Delay', 'd',
-        (f'split-window -h"{home}/tmuxNOC/scripts/tmux_noc.py send_with_delay '
+        (f'split-window -h "{home}/tmuxNOC/scripts/tmux_noc.py send_with_delay '
          f'--pane_id $(tmux display -pt - \'#{{pane_id}}\')"'),
 
         # -----
@@ -346,6 +350,7 @@ def connect_telnet(host):
               --rcfile {home}/tmuxNOC/misc/tmux_noc_bashrc'
         ]
     )
+    subprocess.run(['tmux', 'select-pane', '-T', f't/{host}'])
     save_session('telnet', host)
     pane_log('t', host)
 
@@ -359,6 +364,7 @@ def connect_ssh(host):
             f'PROMPT_COMMAND="ssh {host}" bash --rcfile {home}/tmuxNOC/misc/tmux_noc_bashrc'
         ]
     )
+    subprocess.run(['tmux', 'select-pane', '-T', f's/{host}'])
     save_session('ssh', host)
     pane_log('s', host)
 
@@ -411,6 +417,7 @@ def send_login_pwd(login_number):
 
 
 def send_with_delay(pane_id):
+    subprocess.run(['tmux', 'select-pane', '-T', 'Send with delay'])
     print(f'{ANSIColors.WARNING}What to send? To end list enter a single dot{ANSIColors.ENDC}\n.')
     commands, s = [], ''
     while s != '.':
