@@ -184,6 +184,24 @@ def ssh_config_hosts():
     return hosts
 
 
+def short_word(word):
+    terminal_width = int(subprocess.check_output([
+        'tmux',
+        'display-message',
+        '-p',
+        '#{window_width}'
+    ]).decode('utf-8'))
+
+    if len(word) > 53:
+        word_short = word[:50] + '...'
+    else:
+        word_short = word
+    if len(word_short) >= terminal_width:
+        word_short = word_short[:terminal_width - 20] + '...'
+
+    return word_short
+
+
 def ssh_menu():
     home = str(Path.home())
     command = [
@@ -207,7 +225,7 @@ def ssh_menu():
             elif index == 30:
                 index = 'C-0'
             command += [
-                host,
+                short_word(host),
                 str(index),
                 f'run "{home}/tmuxNOC/scripts/tmux_noc.py connect_ssh --host \'{host}\'"'
             ]
@@ -218,60 +236,83 @@ def noc_menu():
     home = str(Path.home())
 
     if ssh_config_hosts() == 1:
-        ssh_hosts = False
+        ssh_config_hosts_exists = False
     else:
-        ssh_hosts = True
+        ssh_config_hosts_exists = True
 
     sessions_metadata = load_sessions_metadata()
     if 'last_five_sessions' in sessions_metadata:
         last_five_sessions = sessions_metadata['last_five_sessions']
-        last_sessions = ['']
+        last_sessions_menu_block = ['']
         for index, session in enumerate(last_five_sessions):
             connection_type = session['connection_type']
             host = session['host']
-            last_sessions.append(f'{connection_type} {host}')
-            last_sessions.append(f'{index + 1}')
-            last_sessions.append(
-                f'run "{home}/tmuxNOC/scripts/tmux_noc.py connect_{connection_type} --host \'{host}\'"'
+            host_short = short_word(host)
+            last_sessions_menu_block.append(f'{connection_type} {host_short}')
+            last_sessions_menu_block.append(f'{index + 1}')
+            last_sessions_menu_block.append(
+                (f'run "{home}/tmuxNOC/scripts/tmux_noc.py connect_{connection_type} '
+                 f'--host \'{host}\'"')
             )
     else:
-        last_sessions = None
+        last_sessions_menu_block = None
 
-    clipboard = subprocess.run(
+    clipboard_first_line = subprocess.run(
         f'{home}/tmuxNOC/scripts/paste.sh', stdout=subprocess.PIPE
     ).stdout.decode('UTF-8').split('\n')[0]
-    clipboard = [word for word in clipboard.split(' ') if len(word) != 0]
-    if len(clipboard) != 0:
-        clipboard = [
+    clipboard_first_word = [word for word in clipboard_first_line.split(' ') if len(word) != 0]
+    if len(clipboard_first_word) != 0:
+        clipboard_first_word = clipboard_first_word[0]
+        clipboard_first_word_short = short_word(clipboard_first_word)
+        clipboard_menu_block = [
             '',
-            f'telnet {clipboard[0]}', 'v', f'run "{home}/tmuxNOC/scripts/tmux_noc.py connect_telnet --host \'{clipboard[0]}\'"',
-            f'ssh {clipboard[0]}', 'V', f'run "{home}/tmuxNOC/scripts/tmux_noc.py connect_ssh --host \'{clipboard[0]}\'"',
+            f'telnet {clipboard_first_word_short}', 'v',
+            (f'run "{home}/tmuxNOC/scripts/tmux_noc.py connect_telnet '
+             f'--host \'{clipboard_first_word}\'"'),
+
+            f'ssh {clipboard_first_word_short}', 'V',
+            (f'run "{home}/tmuxNOC/scripts/tmux_noc.py connect_ssh '
+             f'--host \'{clipboard_first_word}\'"'),
         ]
     else:
-        clipboard = None
+        clipboard_menu_block = None
 
     command = [
         'tmux', 'display-menu',
         '-T', '#[align=centre]NOC',
         '-x', 'P',
         '-y', 'S',
-        'Show Sessions History', 'h', 'split-window -h "less +G $HOME/tmuxNOC/local/sessions_history.log"',
-        'Open Log File', 'l', f'command-prompt -p "Open Log Number:" \'run "{home}/tmuxNOC/scripts/tmux_noc.py open_log --history_index %1"\'',
+        # -----
+        'Show Sessions History', 'h',
+        'split-window -h "less +G $HOME/tmuxNOC/local/sessions_history.log"',
+
+        'Open Log File', 'l',
+        (f'command-prompt -p "Open Log Number:" '
+         f'\'run "{home}/tmuxNOC/scripts/tmux_noc.py open_log --history_index %1"\''),
+
         'Search in Logs', 'L', f'split-window -v "{home}/tmuxNOC/scripts/tmux_noc.py search_logs"',
+        # -----
         '',
-        'Send Commands with Delay', 'd', f'split-window -h "{home}/tmuxNOC/scripts/tmux_noc.py send_with_delay --pane_id $(tmux display -pt - \'#{{pane_id}}\')"',
+        'Send Commands with Delay', 'd',
+        (f'split-window -h"{home}/tmuxNOC/scripts/tmux_noc.py send_with_delay '
+         f'--pane_id $(tmux display -pt - \'#{{pane_id}}\')"'),
+
+        # -----
         '',
-        'New Telnet', 'q', f'run "{home}/tmuxNOC/scripts/tmux_noc.py setup_connection --connection_type telnet"',
-        'New SSH', 's', f'run "{home}/tmuxNOC/scripts/tmux_noc.py setup_connection --connection_type ssh"',
+        'New Telnet', 'q',
+        f'run "{home}/tmuxNOC/scripts/tmux_noc.py setup_connection --connection_type telnet"',
+
+        'New SSH', 's',
+        f'run "{home}/tmuxNOC/scripts/tmux_noc.py setup_connection --connection_type ssh"',
     ]
-    if ssh_hosts:
+    if ssh_config_hosts_exists:
         command += [
             'SSH Config Hosts', 'S', f'run "{home}/tmuxNOC/scripts/tmux_noc.py ssh_menu"',
         ]
-    if last_sessions is not None:
-        command += last_sessions
-    if clipboard is not None:
-        command += clipboard
+    if last_sessions_menu_block is not None:
+        command += last_sessions_menu_block
+    if clipboard_menu_block is not None:
+        command += clipboard_menu_block
     subprocess.run(command)
 
 
