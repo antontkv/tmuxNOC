@@ -81,6 +81,7 @@ def pane_log(connection_type, host):
 
 def search_logs():
     home = str(Path.home())
+    rename_window()
     query = input(f'{ANSIColors.WARNING}grep in logs:{ANSIColors.ENDC} ')
     if not query.isspace() and query != "":
         subprocess.run(
@@ -105,6 +106,7 @@ def open_log(history_index):
         host = log_file.split('_')[-1].replace('.log', '')
         subprocess.run(['tmux', 'new-window', '-n', f'Log {host}', f'less -M "{log_file}"'])
         subprocess.run(['tmux', 'select-pane', '-T', f'Logfile: {log_file}'])
+        rename_window()
 
 
 def load_sessions_metadata():
@@ -203,7 +205,7 @@ def short_word(word):
     return word_short
 
 
-def ssh_menu():
+def ssh_menu(split_direction):
     home = str(Path.home())
     command = [
         'tmux', 'display-menu',
@@ -228,13 +230,44 @@ def ssh_menu():
             command += [
                 short_word(host),
                 str(index),
-                f'run "{home}/tmuxNOC/scripts/tmux_noc.py connect_ssh --host \'{host}\'"'
+                (f'run "{home}/tmuxNOC/scripts/tmux_noc.py connect_ssh --host \'{host}\' '
+                 f'--split_direction {split_direction}"'),
             ]
     subprocess.run(command)
 
 
-def noc_menu():
+def clipboard_menu(split_direction):
     home = str(Path.home())
+    clipboard_first_line = subprocess.run(
+        f'{home}/tmuxNOC/scripts/paste.sh', stdout=subprocess.PIPE
+    ).stdout.decode('UTF-8').split('\n')[0]
+    clipboard_first_word = [word for word in clipboard_first_line.split(' ') if len(word) != 0]
+    if len(clipboard_first_word) != 0:
+        clipboard_first_word = clipboard_first_word[0]
+        clipboard_first_word_short = short_word(clipboard_first_word)
+        subprocess.run([
+            'tmux', 'display-menu',
+            '-T', '#[align=centre]Clipboard',
+            '-x', 'P',
+            '-y', 'S',
+            f'telnet {clipboard_first_word_short}', 'v',
+            (f'run "{home}/tmuxNOC/scripts/tmux_noc.py connect_telnet '
+             f'--host \'{clipboard_first_word}\' --split_direction {split_direction}"'),
+
+            f'ssh {clipboard_first_word_short}', 'V',
+            (f'run "{home}/tmuxNOC/scripts/tmux_noc.py connect_ssh '
+             f'--host \'{clipboard_first_word}\' --split_direction {split_direction}"'),
+        ])
+    else:
+        subprocess.run({
+            'tmux', 'display-message',
+            'No content in clipboard.'
+        })
+
+
+def noc_menu(split_direction='new'):
+    home = str(Path.home())
+    script_path = f'{home}/tmuxNOC/scripts/tmux_noc.py'
 
     if ssh_config_hosts() == 1:
         ssh_config_hosts_exists = False
@@ -252,75 +285,87 @@ def noc_menu():
             last_sessions_menu_block.append(f'{connection_type} {host_short}')
             last_sessions_menu_block.append(f'{index + 1}')
             last_sessions_menu_block.append(
-                (f'run "{home}/tmuxNOC/scripts/tmux_noc.py connect_{connection_type} '
-                 f'--host \'{host}\'"')
+                (f'run "{script_path} connect_{connection_type} ' 
+                 f'--host \'{host}\' --split_direction {split_direction}"')
             )
     else:
         last_sessions_menu_block = None
 
-    clipboard_first_line = subprocess.run(
-        f'{home}/tmuxNOC/scripts/paste.sh', stdout=subprocess.PIPE
-    ).stdout.decode('UTF-8').split('\n')[0]
-    clipboard_first_word = [word for word in clipboard_first_line.split(' ') if len(word) != 0]
-    if len(clipboard_first_word) != 0:
-        clipboard_first_word = clipboard_first_word[0]
-        clipboard_first_word_short = short_word(clipboard_first_word)
-        clipboard_menu_block = [
+    if split_direction == 'vertical':
+        split_command = 'split-window -v'
+        split_name = 'Vertical'
+        split_variants = [
+            'Split Horizontal', '|', f'run "{script_path} noc_menu --split_direction horizontal"',
+            'Open in New Window', 'n', f'run "{script_path} noc_menu --split_direction new"',
             '',
-            f'telnet {clipboard_first_word_short}', 'v',
-            (f'run "{home}/tmuxNOC/scripts/tmux_noc.py connect_telnet '
-             f'--host \'{clipboard_first_word}\'"'),
-
-            f'ssh {clipboard_first_word_short}', 'V',
-            (f'run "{home}/tmuxNOC/scripts/tmux_noc.py connect_ssh '
-             f'--host \'{clipboard_first_word}\'"'),
+        ]
+    elif split_direction == 'horizontal':
+        split_command = 'split-window -h'
+        split_name = 'Horizontal'
+        split_variants = [
+            'Split Vertical', '_', f'run "{script_path} noc_menu --split_direction vertical"',
+            'Open in New Window', 'n', f'run "{script_path} noc_menu --split_direction new"',
+            '',
         ]
     else:
-        clipboard_menu_block = None
+        split_command = 'new-window'
+        split_name = 'New Window'
+        split_variants = [
+            'Split Vertical', '_', f'run "{script_path} noc_menu --split_direction vertical"',
+            'Split Horizontal', '|', f'run "{script_path} noc_menu --split_direction horizontal"',
+            '',
+        ]
 
     command = [
         'tmux', 'display-menu',
-        '-T', '#[align=centre]NOC',
+        '-T', f'#[align=centre]NOC {split_name}',
         '-x', 'P',
         '-y', 'S',
+    ] + split_variants + [
         # -----
         'Show Sessions History', 'h',
-        ('split-window -h "less +G $HOME/tmuxNOC/local/sessions_history.log"; '
-         'select-pane -T "Sessions History"'),
+        (f'{split_command} "less +G $HOME/tmuxNOC/local/sessions_history.log"; '
+         f'select-pane -T "Sessions History"; run "{script_path} rename_window"'),
 
         'Open Log File', 'l',
-        (f'command-prompt -p "Open Log Number:" '
-         f'\'run "{home}/tmuxNOC/scripts/tmux_noc.py open_log --history_index %1"\''),
+        f'command-prompt -p "Open Log Number:" \'run "{script_path} open_log --history_index %1"\'',
 
         'Search in Logs', 'L',
-        (f'split-window -v "{home}/tmuxNOC/scripts/tmux_noc.py search_logs"; '
-         'select-pane -T "grep in logs"'),
+        f'{split_command} "{script_path} search_logs"; select-pane -T "grep in logs"',
+        # -----
+    ]
+    if split_direction == 'new':
+        command += [
+            '',
+            'Send Commands with Delay', 'd',
+            (f'split-window -h "{script_path} send_with_delay '
+             f'--pane_id $(tmux display -pt - \'#{{pane_id}}\')"'),
+        ]
+    command += [
         # -----
         '',
-        'Send Commands with Delay', 'd',
-        (f'split-window -h "{home}/tmuxNOC/scripts/tmux_noc.py send_with_delay '
-         f'--pane_id $(tmux display -pt - \'#{{pane_id}}\')"'),
+        'Connect from Clipboard', 'v',
+        f'run "{script_path} clipboard_menu --split_direction {split_direction}"',
 
-        # -----
-        '',
         'New Telnet', 'q',
-        f'run "{home}/tmuxNOC/scripts/tmux_noc.py setup_connection --connection_type telnet"',
+        (f'run "{script_path} setup_connection --connection_type telnet '
+         f'--split_direction {split_direction}"'),
 
         'New SSH', 's',
-        f'run "{home}/tmuxNOC/scripts/tmux_noc.py setup_connection --connection_type ssh"',
+        (f'run "{script_path} setup_connection --connection_type ssh '
+         f'--split_direction {split_direction}"'),
     ]
     if ssh_config_hosts_exists:
         command += [
-            'SSH Config Hosts', 'S', f'run "{home}/tmuxNOC/scripts/tmux_noc.py ssh_menu"',
+            'SSH Config Hosts', 'S',
+            f'run "{script_path} ssh_menu --split_direction {split_direction}"',
         ]
     if last_sessions_menu_block is not None:
         command += last_sessions_menu_block
-    if clipboard_menu_block is not None:
-        command += clipboard_menu_block
     subprocess.run(command)
 
 
-def setup_connection(connection_type):
+def setup_connection(connection_type, split_direction):
     home = str(Path.home())
     sessions_metadata = load_sessions_metadata()
     if f'last_{connection_type}_session' in sessions_metadata:
@@ -334,39 +379,67 @@ def setup_connection(connection_type):
         f'{connection_type}:',
         '-I',
         hostname,
-        f'run "{home}/tmuxNOC/scripts/tmux_noc.py connect_{connection_type} --host \'%1\'"'
+        (f'run "{home}/tmuxNOC/scripts/tmux_noc.py connect_{connection_type} --host \'%1\' '
+         f'--split_direction {split_direction}"'),
     ]
     subprocess.run(command)
 
 
-def connect_telnet(host):
+def connect_telnet(host, split_direction):
     home = str(Path.home())
+    if split_direction == 'vertical':
+        split_command = ['tmux', 'split-window', '-v']
+    elif split_direction == 'horizontal':
+        split_command = ['tmux', 'split-window', '-h']
+    else:
+        split_command = ['tmux', 'new-window']
     subprocess.run(
-        [
-            'tmux',
-            'new-window',
-            '-n', f't/{host}',
+        split_command + [
             f'PROMPT_COMMAND="{home}/tmuxNOC/scripts/kbdfix.sh telnet {host}";TERM=vt100-w bash \
               --rcfile {home}/tmuxNOC/misc/tmux_noc_bashrc'
         ]
     )
     subprocess.run(['tmux', 'select-pane', '-T', f't/{host}'])
+    rename_window()
     save_session('telnet', host)
     pane_log('t', host)
 
-def connect_ssh(host):
+def connect_ssh(host, split_direction):
     home = str(Path.home())
+    if split_direction == 'vertical':
+        split_command = ['tmux', 'split-window', '-v']
+    elif split_direction == 'horizontal':
+        split_command = ['tmux', 'split-window', '-h']
+    else:
+        split_command = ['tmux', 'new-window']
     subprocess.run(
-        [
-            'tmux',
-            'new-window',
-            '-n', f's/{host}',
+        split_command + [
             f'PROMPT_COMMAND="ssh {host}" bash --rcfile {home}/tmuxNOC/misc/tmux_noc_bashrc'
         ]
     )
     subprocess.run(['tmux', 'select-pane', '-T', f's/{host}'])
+    rename_window()
     save_session('ssh', host)
     pane_log('s', host)
+
+
+def rename_window():
+    panes_list = subprocess.check_output(
+        ['tmux', 'list-panes', '-F', '#{pane_title}']
+    ).decode('utf-8').split('\n')[:-1]
+    rename = False
+    window_title = []
+    for pane_title in panes_list:
+        if pane_title == '':
+            window_title.append('local')
+        else:
+            rename = True
+            window_title.append(pane_title)
+    if rename:
+        subprocess.run(['tmux', 'rename-window', '\u2503'.join(window_title)])
+    else:
+        subprocess.run(['tmux', 'set', '-w', 'automatic-rename'])
+
 
 
 def tmux_send(string, conformation_symbol='Enter', target_pane=':'):
@@ -418,6 +491,7 @@ def send_login_pwd(login_number):
 
 def send_with_delay(pane_id):
     subprocess.run(['tmux', 'select-pane', '-T', 'Send with delay'])
+    rename_window()
     print(f'{ANSIColors.WARNING}What to send? To end list enter a single dot{ANSIColors.ENDC}\n.')
     commands, s = [], ''
     while s != '.':
@@ -484,6 +558,7 @@ if __name__ == "__main__":
         'send_with_delay',
         'noc_menu',
         'ssh_menu',
+        'clipboard_menu',
         'setup_connection',
         'connect_telnet',
         'connect_ssh',
@@ -491,11 +566,13 @@ if __name__ == "__main__":
         'save_pane_history',
         'search_logs',
         'open_log',
+        'rename_window',
     ])
     parser.add_argument('--login_number', nargs='?')
     parser.add_argument('--host', nargs='?')
     parser.add_argument('--connection_type', nargs='?')
     parser.add_argument('--pane_id', nargs='?')
+    parser.add_argument('--split_direction', nargs='?')
     parser.add_argument('--file_name', nargs='?')
     parser.add_argument(
         '-i',
@@ -511,15 +588,17 @@ if __name__ == "__main__":
     elif args.type == 'send_with_delay':
         send_with_delay(args.pane_id)
     elif args.type == 'noc_menu':
-        noc_menu()
+        noc_menu(args.split_direction)
     elif args.type == 'ssh_menu':
-        ssh_menu()
+        ssh_menu(args.split_direction)
+    elif args.type == 'clipboard_menu':
+        clipboard_menu(args.split_direction)
     elif args.type == 'setup_connection':
-        setup_connection(args.connection_type)
+        setup_connection(args.connection_type, args.split_direction)
     elif args.type == 'connect_telnet':
-        connect_telnet(args.host)
+        connect_telnet(args.host, args.split_direction)
     elif args.type == 'connect_ssh':
-        connect_ssh(args.host)
+        connect_ssh(args.host, args.split_direction)
     elif args.type == 'toggle_log':
         pane_log('l', 'local')
     elif args.type == 'save_pane_history':
@@ -528,3 +607,5 @@ if __name__ == "__main__":
         search_logs()
     elif args.type == 'open_log':
         open_log(args.history_index)
+    elif args.type == 'rename_window':
+        rename_window()
