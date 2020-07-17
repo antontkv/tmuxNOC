@@ -346,7 +346,7 @@ def noc_menu(split_direction='new'):
          f'select-pane -T "Sessions History"; run "{script_path} rename_window"'),
 
         'Open Log File', 'l',
-        (f'command-prompt -p "Open Log Number:" \'run "{script_path} open_log ' 
+        (f'command-prompt -p "Open Log Number:" \'run "{script_path} open_log '
          f'--history_index %1 --split_direction {split_direction}"\''),
 
         'Search in Logs', 'L',
