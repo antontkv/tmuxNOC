@@ -28,6 +28,7 @@ class lPaths:
     """
     home = str(Path.home())
     tmuxNOC = f'{home}/tmuxNOC'
+    script = f'{tmuxNOC}/scripts/tmux_noc.py'
     log_dir = f'{tmuxNOC}/local/log'
 
 
@@ -283,6 +284,41 @@ def clipboard_menu(split_direction):
         })
 
 
+def move_pane_window(split_direction):
+    if split_direction == 'vertical':
+        split_argument = '-h'
+    elif split_direction == 'horizontal':
+        split_argument = '-v'
+    else:
+        return
+
+    windows_list = subprocess.check_output(
+        ['tmux', 'list-windows', '-F', "#I&&&#W&&&#{window_id}"],
+        encoding='utf-8'
+    ).split('\n')[:-1]
+
+    windows_menu = []
+    for window in windows_list:
+        index, name, _id = window.split('&&&')
+        windows_menu.append(f'{index}:{short_word(name)}')
+        if int(index) < 10:
+            windows_menu.append(index)
+        else:
+            windows_menu.append('')
+        windows_menu.append(
+            f'join-pane {split_argument} -t {_id}; run "{lPaths.script} rename_window"'
+            )
+
+    subprocess.run([
+        'tmux',
+        'display-menu',
+        '-T', '#[align=centre]Move Pane to:',
+        '-x', 'P',
+        '-y', 'S',
+    ] + windows_menu)
+
+
+
 def noc_menu(split_direction='new'):
     home = str(Path.home())
     script_path = f'{home}/tmuxNOC/scripts/tmux_noc.py'
@@ -340,6 +376,12 @@ def noc_menu(split_direction='new'):
         '-x', 'P',
         '-y', 'S',
     ] + split_variants + [
+        'Move Pane to Window - Vertical', 'm',
+        f'run "{script_path} move_pane_window --split_direction vertical"',
+
+        'Move Pane to Window - Horizontal', 'M',
+        f'run "{script_path} move_pane_window --split_direction horizontal"',
+        '',
         # -----
         'Show Sessions History', 'h',
         (f'{split_command} "less +G $HOME/tmuxNOC/local/sessions_history.log"; '
@@ -578,6 +620,7 @@ if __name__ == "__main__":
         'noc_menu',
         'ssh_menu',
         'clipboard_menu',
+        'move_pane_window',
         'setup_connection',
         'connect_telnet',
         'connect_ssh',
@@ -612,6 +655,8 @@ if __name__ == "__main__":
         ssh_menu(args.split_direction)
     elif args.type == 'clipboard_menu':
         clipboard_menu(args.split_direction)
+    elif args.type == 'move_pane_window':
+        move_pane_window(args.split_direction)
     elif args.type == 'setup_connection':
         setup_connection(args.connection_type, args.split_direction)
     elif args.type == 'connect_telnet':
