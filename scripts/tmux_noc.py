@@ -92,7 +92,7 @@ def pane_log(connection_type, host):
         'tmux',
         'pipe-pane',
         '-o',
-        f'{home}/tmuxNOC/scripts/tmux_noc.py save_pane_history --file_name {log_filename}\
+        f'{home}/tmuxNOC/scripts/tmux_noc.py save_pane_history --file_name "{log_filename}"\
           --pane_id #{{pane_id}} -i -'
     ])
 
