@@ -22,6 +22,15 @@ class ANSIColors:
     UNDERLINE = '\033[4m'
 
 
+class lPaths:
+    """
+    Local paths.
+    """
+    home = str(Path.home())
+    tmuxNOC = f'{home}/tmuxNOC'
+    log_dir = f'{tmuxNOC}/local/log'
+
+
 def create_dir(filename):
     """
     Creates path for file, if directories doesn't exists.
@@ -32,6 +41,15 @@ def create_dir(filename):
         except OSError as exc:  # Guard against race condition
             if exc.errno != EEXIST:
                 raise
+
+
+def get_split_command(split_direction):
+    if split_direction == 'vertical':
+        return ['split-window', '-v']
+    elif split_direction == 'horizontal':
+        return ['split-window', '-h']
+    else:
+        return ['new-window']
 
 
 def save_pane_history(output_file_name, pane_id='*', pipe='o', only_once=False):
@@ -93,10 +111,9 @@ def search_logs():
     search_logs()
 
 
-def open_log(history_index):
-    home = str(Path.home())
+def open_log(history_index, split_direction):
     log_file = None
-    for path in Path(f'{home}/tmuxNOC/local/log').rglob(f'*{history_index}*'):
+    for path in Path(lPaths.log_dir).rglob(f'*{history_index}*'):
         log_file = str(path)
     if log_file is None:
         subprocess.run(
@@ -104,8 +121,9 @@ def open_log(history_index):
         )
     else:
         host = log_file.split('_')[-1].replace('.log', '')
-        subprocess.run(['tmux', 'new-window', '-n', f'Log {host}', f'less -M "{log_file}"'])
-        subprocess.run(['tmux', 'select-pane', '-T', f'Logfile: {log_file}'])
+        log_file_short = log_file.replace(lPaths.log_dir + '/', '')
+        subprocess.run(['tmux'] + get_split_command(split_direction) + [f'less -m "{log_file}"'])
+        subprocess.run(['tmux', 'select-pane', '-T', f'Log:{log_file_short}'])
         rename_window()
 
 
@@ -285,7 +303,7 @@ def noc_menu(split_direction='new'):
             last_sessions_menu_block.append(f'{connection_type} {host_short}')
             last_sessions_menu_block.append(f'{index + 1}')
             last_sessions_menu_block.append(
-                (f'run "{script_path} connect_{connection_type} ' 
+                (f'run "{script_path} connect_{connection_type} '
                  f'--host \'{host}\' --split_direction {split_direction}"')
             )
     else:
@@ -328,7 +346,8 @@ def noc_menu(split_direction='new'):
          f'select-pane -T "Sessions History"; run "{script_path} rename_window"'),
 
         'Open Log File', 'l',
-        f'command-prompt -p "Open Log Number:" \'run "{script_path} open_log --history_index %1"\'',
+        (f'command-prompt -p "Open Log Number:" \'run "{script_path} open_log ' 
+         f'--history_index %1 --split_direction {split_direction}"\''),
 
         'Search in Logs', 'L',
         f'{split_command} "{script_path} search_logs"; select-pane -T "grep in logs"',
@@ -606,6 +625,6 @@ if __name__ == "__main__":
     elif args.type == 'search_logs':
         search_logs()
     elif args.type == 'open_log':
-        open_log(args.history_index)
+        open_log(args.history_index, args.split_direction)
     elif args.type == 'rename_window':
         rename_window()
