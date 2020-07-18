@@ -30,6 +30,9 @@ class lPaths:
     tmuxNOC = f'{home}/tmuxNOC'
     script = f'{tmuxNOC}/scripts/tmux_noc.py'
     log_dir = f'{tmuxNOC}/local/log'
+    sessions_metadata = f'{tmuxNOC}/sessions.json'
+    sessions_history = f'{tmuxNOC}/local/sessions_history.log'
+    logins = f'{tmuxNOC}/.logins'
 
 
 def create_dir(filename):
@@ -129,8 +132,9 @@ def open_log(history_index, split_direction):
 
 
 def load_sessions_metadata():
-    home = str(Path.home())
-    with open(f'{home}/tmuxNOC/sessions.json', 'r') as f:
+    if not os.path.exists(lPaths.sessions_metadata):
+        return {}
+    with open(lPaths.sessions_metadata, 'r') as f:
         sessions = json.load(f)
     return sessions
 
@@ -180,8 +184,11 @@ def save_session(connection_type, host):
     with open(f'{home}/tmuxNOC/sessions.json', 'w') as f:
         json.dump(sessions_metadata, f)
 
-    sessions_history_filename = f'{home}/tmuxNOC/local/sessions_history.log'
-    with open(sessions_history_filename, 'r+') as sessions_history_file:
+    if not os.path.exists(lPaths.sessions_history):
+        create_dir(lPaths.sessions_history)
+        with open(lPaths.sessions_history, 'w'):
+            pass
+    with open(lPaths.sessions_history, 'r+') as sessions_history_file:
         sessions_history = sessions_history_file.read()
         current_date = datetime.datetime.now().strftime("%d.%m.%Y")
         current_time = datetime.datetime.now().strftime("%H:%M:%S")
@@ -535,14 +542,29 @@ def tmux_wait_for(string, timeout=3):
 
 
 def send_login_pwd(login_number):
-    home = str(Path.home())
-    with open(f'{home}/tmuxNOC/.logins', 'r') as f:
+    login, password = '', ''
+
+    if not os.path.exists(lPaths.logins):
+        subprocess.run([
+            'tmux',
+            'display-message',
+            f'File {lPaths.logins} doesn\'t exists.'
+        ])
+        return
+    with open(lPaths.logins, 'r') as f:
         logins = f.readlines()
     for line in logins:
         if f'LOGIN{login_number}' in line:
             login = line.replace(f'LOGIN{login_number}=', '').replace('\n', '')
         if f'PASS{login_number}' in line:
             password = line.replace(f'PASS{login_number}=', '').replace('\n', '')
+    if not login or not password:
+        subprocess.run([
+            'tmux',
+            'display-message',
+            f'Login-password pair {login_number} not found in {lPaths.logins}.'
+        ])
+        return
     tmux_send(login)
     if tmux_wait_for('assword'):
         tmux_send(password)
