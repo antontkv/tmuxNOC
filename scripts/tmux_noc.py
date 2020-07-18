@@ -117,7 +117,7 @@ def search_logs():
 
 def open_log(history_index, split_direction):
     log_file = None
-    for path in Path(lPaths.log_dir).rglob(f'*{history_index}*'):
+    for path in Path(lPaths.log_dir).rglob(f'*!{history_index}*'):
         log_file = str(path)
     if log_file is None:
         subprocess.run(
