@@ -13,7 +13,9 @@ is_app_installed() {
 }
 
 paste_backend=""
-if is_app_installed paste.exe; then
+if [ -n "${DISPLAY-}" ] && is_app_installed xsel; then
+  paste_backend="xsel -o --clipboard"
+elif is_app_installed paste.exe; then
   paste_backend="paste.exe"
 fi
 
