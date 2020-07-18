@@ -13,7 +13,7 @@ is_app_installed() {
 install_tmux() {
   printf "Install tmux from source\n"
   # Installing dependencies
-  sudo apt-get -y install wget tar libevent-dev ncurses-dev build-essential bison pkg-config
+  sudo apt-get -y install wget tar libevent-dev ncurses-dev build-essential bison pkg-config expect
 
   # Downloading and unpacking tmux source files
   if [ ! -e "$HOME/tmuxNOC/" ]; then
