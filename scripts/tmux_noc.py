@@ -482,14 +482,6 @@ def setup_connection(connection_type, split_direction):
 
 def connect_telnet(host, split_direction):
     home = str(Path.home())
-    # if split_direction == 'vertical':
-    #     split_command = ['tmux', 'split-window', '-v']
-    # elif split_direction == 'horizontal':
-    #     split_command = ['tmux', 'split-window', '-h']
-    # elif split_direction == 'reopen':
-    #     split_command = ['tmux', 'respawn-pane', '-k']
-    # else:
-    #     split_command = ['tmux', 'new-window']
     subprocess.run(
         get_split_command(split_direction) + [
             f'PROMPT_COMMAND="{home}/tmuxNOC/scripts/kbdfix.sh telnet {host}";TERM=vt100-w bash \
@@ -503,14 +495,6 @@ def connect_telnet(host, split_direction):
 
 def connect_ssh(host, split_direction):
     home = str(Path.home())
-    # if split_direction == 'vertical':
-    #     split_command = ['tmux', 'split-window', '-v']
-    # elif split_direction == 'horizontal':
-    #     split_command = ['tmux', 'split-window', '-h']
-    # elif split_direction == 'reopen':
-    #     split_command = ['tmux', 'respawn-pane', '-k']
-    # else:
-    #     split_command = ['tmux', 'new-window']
     subprocess.run(
         get_split_command(split_direction) + [
             f'PROMPT_COMMAND="ssh {host}" bash --rcfile {home}/tmuxNOC/misc/tmux_noc_bashrc'
