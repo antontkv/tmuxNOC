@@ -515,22 +515,17 @@ def rename_windows():
 
 def tmux_send(string, conformation_symbol='Enter', target_pane=':'):
     subprocess.run(
-        ['tmux', 'send-keys', '-t', target_pane, string, f'{conformation_symbol}'],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL
+        ['tmux', 'send-keys', '-t', target_pane, string, f'{conformation_symbol}']
     )
 
 
 def tmux_wait_for(string, timeout=3):
     found = False
     for _ in range(timeout*10):
-        screen_content_b = subprocess.run([
-            'tmux',
-            'capture-pane',
-            '-J',
-            '-p'
-        ], stdout=subprocess.PIPE).stdout
-        screen_content_list = screen_content_b.decode('UTF-8').split('\n')
+        screen_content_list = subprocess.check_output(
+            ['tmux', 'capture-pane', '-J', '-p'],
+            encoding='UTF-8'
+        ).split('\n')
         screen_content_list_filtered = [line for line in screen_content_list if len(line) != 0]
         for line in screen_content_list_filtered[-2:]:
             if string in line:
