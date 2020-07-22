@@ -486,8 +486,9 @@ def rename_window(window_id=':'):
     if window_id is None:
         window_id = ':'
     panes_list = subprocess.check_output(
-        ['tmux', 'list-panes', '-t', window_id, '-F', '#{pane_title}']
-    ).decode('utf-8').split('\n')[:-1]
+        ['tmux', 'list-panes', '-t', window_id, '-F', '#{pane_title}'],
+        encoding='UTF-8'
+    ).split('\n')[:-1]
     rename = False
     window_title = []
     for pane_title in panes_list:
@@ -503,9 +504,10 @@ def rename_window(window_id=':'):
 
 
 def rename_windows():
-    windows_list = subprocess.check_output([
-        'tmux', 'list-windows', '-F', '#{window_id}'
-    ]).decode('UTF-8').split('\n')[:-1]
+    windows_list = subprocess.check_output(
+        ['tmux', 'list-windows', '-F', '#{window_id}'],
+        encoding='UTF-8'
+    ).split('\n')[:-1]
 
     for window_id in windows_list:
         rename_window(window_id)
