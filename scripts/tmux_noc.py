@@ -29,6 +29,7 @@ class lPaths:
     home = str(Path.home())
     tmuxNOC = f'{home}/tmuxNOC'
     script = f'{tmuxNOC}/scripts/tmux_noc.py'
+    paste = f'{tmuxNOC}/scripts/paste.sh'
     log_dir = f'{tmuxNOC}/local/log'
     sessions_metadata = f'{tmuxNOC}/sessions.json'
     sessions_history = f'{tmuxNOC}/local/sessions_history.log'
@@ -257,13 +258,8 @@ def ssh_menu(split_direction):
     subprocess.run(command)
 
 
-# TODO: Use lPaths
-# TODO: Function to dispaly messages
 def clipboard_menu(split_direction):
-    home = str(Path.home())
-    clipboard_first_line = subprocess.run(
-        f'{home}/tmuxNOC/scripts/paste.sh', stdout=subprocess.PIPE
-    ).stdout.decode('UTF-8').split('\n')[0]
+    clipboard_first_line = subprocess.check_output(lPaths.paste, encoding='UTF-8').split('\n')[0]
     clipboard_first_word = [word for word in clipboard_first_line.split(' ') if len(word) != 0]
     if len(clipboard_first_word) != 0:
         clipboard_first_word = clipboard_first_word[0]
@@ -274,18 +270,15 @@ def clipboard_menu(split_direction):
             '-x', 'P',
             '-y', 'S',
             f'telnet {clipboard_first_word_short}', 'v',
-            (f'run "{home}/tmuxNOC/scripts/tmux_noc.py connect_telnet '
+            (f'run "{lPaths.script} connect_telnet '
              f'--host \'{clipboard_first_word}\' --split_direction {split_direction}"'),
 
             f'ssh {clipboard_first_word_short}', 'V',
-            (f'run "{home}/tmuxNOC/scripts/tmux_noc.py connect_ssh '
+            (f'run "{lPaths.script} connect_ssh '
              f'--host \'{clipboard_first_word}\' --split_direction {split_direction}"'),
         ])
     else:
-        subprocess.run({
-            'tmux', 'display-message',
-            'No content in clipboard.'
-        })
+        tmux_dm('No content in clipboard.')
 
 
 # TODO: Encoding in check_output
