@@ -196,13 +196,11 @@ def save_session(connection_type, host):
         )
 
 
-# TODO: Use lPaths
 def ssh_config_hosts():
-    home = str(Path.home())
-    if not os.path.exists(f'{home}/.ssh/config'):
-        return 1
+    if not os.path.exists(f'{lPaths.home}/.ssh/config'):
+        return None
 
-    with open(f'{home}/.ssh/config') as f:
+    with open(f'{lPaths.home}/.ssh/config') as f:
         ssh_config = f.readlines()
     hosts = []
     for line in ssh_config:
@@ -333,7 +331,7 @@ def noc_menu(split_direction='new'):
     home = str(Path.home())
     script_path = f'{home}/tmuxNOC/scripts/tmux_noc.py'
 
-    if ssh_config_hosts() == 1:
+    if ssh_config_hosts() is None:
         ssh_config_hosts_exists = False
     else:
         ssh_config_hosts_exists = True
