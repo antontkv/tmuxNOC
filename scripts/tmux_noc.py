@@ -215,7 +215,7 @@ def short_word(word):
         'display-message',
         '-p',
         '#{window_width}'
-    ]).decode('utf-8'))
+    ], encoding='UTF-8'))
 
     if len(word) > 53:
         word_short = word[:50] + '...'
