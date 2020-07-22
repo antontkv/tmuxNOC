@@ -72,10 +72,7 @@ def save_pane_history(output_file_name, pane_id=':', pipe='o', only_once=False):
         time.sleep(1)
 
 
-# TODO: Use lPaths
-# TODO: Use pane title for log file name
 def pane_log(connection_type, host):
-    home = str(Path.home())
     sessions_metadata = load_sessions_metadata()
     if connection_type == 'l':
         last_session_index = '--'
@@ -85,15 +82,15 @@ def pane_log(connection_type, host):
     month = datetime.datetime.now().strftime("%m")
     day = datetime.datetime.now().strftime("%d")
     current_time = datetime.datetime.now().strftime("%H_%M_%S")
-    log_filename = f'{home}/tmuxNOC/local/log/{year}/{month}/{day}/{current_time}---!{last_session_index}_{connection_type}_{host}.log'
+    log_filename = (f'{lPaths.log_dir}/{year}/{month}/{day}/{current_time}'
+                    f'---!{last_session_index}_{connection_type}_{host}.log')
     create_dir(log_filename)
 
     subprocess.run([
         'tmux',
         'pipe-pane',
         '-o',
-        f'{home}/tmuxNOC/scripts/tmux_noc.py save_pane_history --file_name "{log_filename}"\
-          --pane_id #{{pane_id}} -i -'
+        f'{lPaths.script} save_pane_history --file_name "{log_filename}" --pane_id #{{pane_id}} -i -'
     ])
 
 
