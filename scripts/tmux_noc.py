@@ -313,7 +313,7 @@ def move_pane_window(split_direction):
         else:
             windows_menu.append('')
         windows_menu.append(
-            f'join-pane {split_argument} -t {_id}; run "{lPaths.script} rename_window"'
+            f'join-pane {split_argument} -t {_id}; run "{lPaths.script} rename_windows"'
             )
 
     subprocess.run([
@@ -491,9 +491,11 @@ def connect_ssh(host, split_direction):
     pane_log('s', host)
 
 
-def rename_window():
+def rename_window(window_id=':'):
+    if window_id is None:
+        window_id = ':'
     panes_list = subprocess.check_output(
-        ['tmux', 'list-panes', '-F', '#{pane_title}']
+        ['tmux', 'list-panes', '-t', window_id, '-F', '#{pane_title}']
     ).decode('utf-8').split('\n')[:-1]
     rename = False
     window_title = []
@@ -504,10 +506,18 @@ def rename_window():
             rename = True
             window_title.append(pane_title)
     if rename:
-        subprocess.run(['tmux', 'rename-window', '\u2503'.join(window_title)])
+        subprocess.run(['tmux', 'rename-window', '-t', window_id, '\u2503'.join(window_title)])
     else:
-        subprocess.run(['tmux', 'set', '-w', 'automatic-rename'])
+        subprocess.run(['tmux', 'set', '-w', '-t', window_id, 'automatic-rename'])
 
+
+def rename_windows():
+    windows_list = subprocess.check_output([
+        'tmux', 'list-windows', '-F', '#{window_id}'
+    ]).decode('UTF-8').split('\n')[:-1]
+
+    for window_id in windows_list:
+        rename_window(window_id)
 
 
 def tmux_send(string, conformation_symbol='Enter', target_pane=':'):
@@ -651,11 +661,13 @@ if __name__ == "__main__":
         'search_logs',
         'open_log',
         'rename_window',
+        'rename_windows',
     ])
     parser.add_argument('--login_number', nargs='?')
     parser.add_argument('--host', nargs='?')
     parser.add_argument('--connection_type', nargs='?')
     parser.add_argument('--pane_id', nargs='?')
+    parser.add_argument('--window_id', nargs='?')
     parser.add_argument('--split_direction', nargs='?')
     parser.add_argument('--file_name', nargs='?')
     parser.add_argument(
@@ -694,4 +706,6 @@ if __name__ == "__main__":
     elif args.type == 'open_log':
         open_log(args.history_index, args.split_direction)
     elif args.type == 'rename_window':
-        rename_window()
+        rename_window(args.window_id)
+    elif args.type == 'rename_windows':
+        rename_windows()
