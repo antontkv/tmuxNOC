@@ -543,11 +543,7 @@ def send_login_pwd(login_number):
     login, password = '', ''
 
     if not os.path.exists(lPaths.logins):
-        subprocess.run([
-            'tmux',
-            'display-message',
-            f'File {lPaths.logins} doesn\'t exists.'
-        ])
+        tmux_dm(f'File {lPaths.logins} doesn\'t exists.')
         return
     with open(lPaths.logins, 'r') as f:
         logins = f.readlines()
@@ -557,17 +553,13 @@ def send_login_pwd(login_number):
         if f'PASS{login_number}' in line:
             password = line.replace(f'PASS{login_number}=', '').replace('\n', '')
     if not login or not password:
-        subprocess.run([
-            'tmux',
-            'display-message',
-            f'Login-password pair {login_number} not found in {lPaths.logins}.'
-        ])
+        tmux_dm(f'Login-password pair {login_number} not found in {lPaths.logins}.')
         return
     tmux_send(login)
     if tmux_wait_for('assword'):
         tmux_send(password)
     else:
-        subprocess.run(['tmux', 'display-message', 'Password prompt not found.'])
+        tmux_dm('Password prompt not found.')
 
 
 def send_with_delay(pane_id):
