@@ -94,19 +94,18 @@ def pane_log(connection_type, host):
     ])
 
 
-# TODO: Use lPaths
 def search_logs():
-    home = str(Path.home())
     rename_window()
     query = input(f'{ANSIColors.WARNING}grep in logs:{ANSIColors.ENDC} ')
     if not query.isspace() and query != "":
         subprocess.run(
             ['grep', '--color=always', '-n', '-r', query, '.'],
-            cwd=f'{home}/tmuxNOC/local/log/'
+            cwd=f'{lPaths.home}/tmuxNOC/local/log/'
         )
     else:
         print(f'{ANSIColors.FAIL}Empty query.{ANSIColors.ENDC}')
     search_logs()
+
 
 # TODO: Function to display messages
 # TODO: Function to rename pane
