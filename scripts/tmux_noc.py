@@ -227,9 +227,7 @@ def short_word(word):
     return word_short
 
 
-# TODO: Use lPaths
 def ssh_menu(split_direction):
-    home = str(Path.home())
     command = [
         'tmux', 'display-menu',
         '-T', '#[align=centre]SSH Config Hosts',
@@ -237,7 +235,7 @@ def ssh_menu(split_direction):
         '-y', 'S',
     ]
     ssh_hosts_list = ssh_config_hosts()
-    if ssh_hosts_list != 1:
+    if ssh_hosts_list is not None:
         for index, host in enumerate(ssh_hosts_list):
             index += 1
             if index == 10:
@@ -253,7 +251,7 @@ def ssh_menu(split_direction):
             command += [
                 short_word(host),
                 str(index),
-                (f'run "{home}/tmuxNOC/scripts/tmux_noc.py connect_ssh --host \'{host}\' '
+                (f'run "{lPaths.script} connect_ssh --host \'{host}\' '
                  f'--split_direction {split_direction}"'),
             ]
     subprocess.run(command)
