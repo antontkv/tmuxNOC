@@ -563,7 +563,7 @@ def send_login_pwd(login_number):
 
 
 def send_with_delay(pane_id):
-    subprocess.run(['tmux', 'select-pane', '-T', 'Send with delay'])
+    tmux_set_pane_title('Send with delay')
     rename_window()
     print(f'{ANSIColors.WARNING}What to send? To end list enter a single dot{ANSIColors.ENDC}\n.')
     commands, s = [], ''
