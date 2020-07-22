@@ -58,20 +58,11 @@ def get_split_command(split_direction):
         return ['tmux', 'new-window']
 
 
-# TODO: rewrite with subprocess.check_output
-def save_pane_history(output_file_name, pane_id='*', pipe='o', only_once=False):
+def save_pane_history(output_file_name, pane_id=':', pipe='o', only_once=False):
     for _ in pipe:
-        output_b = subprocess.run([
-            'tmux',
-            'capture-pane',
-            '-J',
-            '-p',
-            '-S',
-            '-20000',
-            '-t',
-            pane_id,
-        ], stdout=subprocess.PIPE).stdout
-        output = output_b.decode('UTF-8')
+        output = subprocess.check_output([
+            'tmux', 'capture-pane', '-J', '-p', '-S', '-20000', '-t', pane_id
+        ], encoding='UTF-8')
         if output == '':
             continue
         with open(output_file_name, 'w') as f:
