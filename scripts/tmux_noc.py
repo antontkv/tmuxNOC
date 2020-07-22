@@ -137,9 +137,7 @@ def load_sessions_metadata():
     return sessions
 
 
-# TODO: Use lPaths
 def save_session(connection_type, host):
-    home = str(Path.home())
     sessions_metadata = load_sessions_metadata()
     if 'last_session_index' in sessions_metadata:
         sessions_metadata['last_session_index'] += 1
@@ -180,7 +178,7 @@ def save_session(connection_type, host):
         }]
     sessions_metadata['last_five_sessions'] = last_five_sessions
     sessions_metadata[f'last_{connection_type}_session'] = host
-    with open(f'{home}/tmuxNOC/sessions.json', 'w') as f:
+    with open(lPaths.sessions_metadata, 'w') as f:
         json.dump(sessions_metadata, f)
 
     if not os.path.exists(lPaths.sessions_history):
