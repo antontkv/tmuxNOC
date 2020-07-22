@@ -49,15 +49,16 @@ def create_dir(filename):
 
 def get_split_command(split_direction):
     if split_direction == 'vertical':
-        return ['split-window', '-v']
+        return ['tmux', 'split-window', '-v']
     elif split_direction == 'horizontal':
-        return ['split-window', '-h']
+        return ['tmux', 'split-window', '-h']
     elif split_direction == 'reopen':
-        return ['respawn-pane', '-k']
+        return ['tmux', 'respawn-pane', '-k']
     else:
-        return ['new-window']
+        return ['tmux', 'new-window']
 
 
+# TODO: rewrite with subprocess.check_output
 def save_pane_history(output_file_name, pane_id='*', pipe='o', only_once=False):
     for _ in pipe:
         output_b = subprocess.run([
@@ -80,6 +81,8 @@ def save_pane_history(output_file_name, pane_id='*', pipe='o', only_once=False):
         time.sleep(1)
 
 
+# TODO: Use lPaths
+# TODO: Use pane title for log file name
 def pane_log(connection_type, host):
     home = str(Path.home())
     sessions_metadata = load_sessions_metadata()
@@ -103,6 +106,7 @@ def pane_log(connection_type, host):
     ])
 
 
+# TODO: Use lPaths
 def search_logs():
     home = str(Path.home())
     rename_window()
@@ -116,7 +120,8 @@ def search_logs():
         print(f'{ANSIColors.FAIL}Empty query.{ANSIColors.ENDC}')
     search_logs()
 
-
+# TODO: Function to display messages
+# TODO: Function to rename pane
 def open_log(history_index, split_direction):
     log_file = None
     for path in Path(lPaths.log_dir).rglob(f'*!{history_index}*'):
@@ -128,7 +133,7 @@ def open_log(history_index, split_direction):
     else:
         host = log_file.split('_')[-1].replace('.log', '')
         log_file_short = log_file.replace(lPaths.log_dir + '/', '')
-        subprocess.run(['tmux'] + get_split_command(split_direction) + [f'less -m "{log_file}"'])
+        subprocess.run(get_split_command(split_direction) + [f'less -m "{log_file}"'])
         subprocess.run(['tmux', 'select-pane', '-T', f'Log:{log_file_short}'])
         rename_window()
 
@@ -141,6 +146,7 @@ def load_sessions_metadata():
     return sessions
 
 
+# TODO: Use lPaths
 def save_session(connection_type, host):
     home = str(Path.home())
     sessions_metadata = load_sessions_metadata()
@@ -201,6 +207,7 @@ def save_session(connection_type, host):
         )
 
 
+# TODO: Use lPaths
 def ssh_config_hosts():
     home = str(Path.home())
     if not os.path.exists(f'{home}/.ssh/config'):
@@ -233,6 +240,7 @@ def short_word(word):
     return word_short
 
 
+# TODO: Use lPaths
 def ssh_menu(split_direction):
     home = str(Path.home())
     command = [
@@ -264,6 +272,8 @@ def ssh_menu(split_direction):
     subprocess.run(command)
 
 
+# TODO: Use lPaths
+# TODO: Function to dispaly messages
 def clipboard_menu(split_direction):
     home = str(Path.home())
     clipboard_first_line = subprocess.run(
@@ -293,6 +303,7 @@ def clipboard_menu(split_direction):
         })
 
 
+# TODO: Encoding in check_output
 def move_pane_window(split_direction):
     if split_direction == 'vertical':
         split_argument = '-h'
@@ -328,6 +339,7 @@ def move_pane_window(split_direction):
 
 
 
+# TODO: Use lPaths
 def noc_menu(split_direction='new'):
     home = str(Path.home())
     script_path = f'{home}/tmuxNOC/scripts/tmux_noc.py'
@@ -447,6 +459,7 @@ def noc_menu(split_direction='new'):
     subprocess.run(command)
 
 
+# TODO: Use lPaths
 def setup_connection(connection_type, split_direction):
     home = str(Path.home())
     sessions_metadata = load_sessions_metadata()
@@ -469,16 +482,16 @@ def setup_connection(connection_type, split_direction):
 
 def connect_telnet(host, split_direction):
     home = str(Path.home())
-    if split_direction == 'vertical':
-        split_command = ['tmux', 'split-window', '-v']
-    elif split_direction == 'horizontal':
-        split_command = ['tmux', 'split-window', '-h']
-    elif split_direction == 'reopen':
-        split_command = ['tmux', 'respawn-pane', '-k']
-    else:
-        split_command = ['tmux', 'new-window']
+    # if split_direction == 'vertical':
+    #     split_command = ['tmux', 'split-window', '-v']
+    # elif split_direction == 'horizontal':
+    #     split_command = ['tmux', 'split-window', '-h']
+    # elif split_direction == 'reopen':
+    #     split_command = ['tmux', 'respawn-pane', '-k']
+    # else:
+    #     split_command = ['tmux', 'new-window']
     subprocess.run(
-        split_command + [
+        get_split_command (split_direction) + [
             f'PROMPT_COMMAND="{home}/tmuxNOC/scripts/kbdfix.sh telnet {host}";TERM=vt100-w bash \
               --rcfile {home}/tmuxNOC/misc/tmux_noc_bashrc'
         ]
@@ -490,16 +503,16 @@ def connect_telnet(host, split_direction):
 
 def connect_ssh(host, split_direction):
     home = str(Path.home())
-    if split_direction == 'vertical':
-        split_command = ['tmux', 'split-window', '-v']
-    elif split_direction == 'horizontal':
-        split_command = ['tmux', 'split-window', '-h']
-    elif split_direction == 'reopen':
-        split_command = ['tmux', 'respawn-pane', '-k']
-    else:
-        split_command = ['tmux', 'new-window']
+    # if split_direction == 'vertical':
+    #     split_command = ['tmux', 'split-window', '-v']
+    # elif split_direction == 'horizontal':
+    #     split_command = ['tmux', 'split-window', '-h']
+    # elif split_direction == 'reopen':
+    #     split_command = ['tmux', 'respawn-pane', '-k']
+    # else:
+    #     split_command = ['tmux', 'new-window']
     subprocess.run(
-        split_command + [
+        get_split_command (split_direction) + [
             f'PROMPT_COMMAND="ssh {host}" bash --rcfile {home}/tmuxNOC/misc/tmux_noc_bashrc'
         ]
     )
