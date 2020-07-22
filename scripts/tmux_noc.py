@@ -107,21 +107,25 @@ def search_logs():
     search_logs()
 
 
-# TODO: Function to display messages
-# TODO: Function to rename pane
+def tmux_dm(message):
+    subprocess.run(['tmux', 'display-message', message])
+
+
+def tmux_set_pane_title(title):
+    subprocess.run(['tmux', 'select-pane', '-T', title])
+
+
 def open_log(history_index, split_direction):
     log_file = None
     for path in Path(lPaths.log_dir).rglob(f'*!{history_index}*'):
         log_file = str(path)
     if log_file is None:
-        subprocess.run(
-            ['tmux', 'display-message', f'Log file with index {history_index} not found.']
-        )
+        tmux_dm(f'Log file with index {history_index} not found.')
     else:
         host = log_file.split('_')[-1].replace('.log', '')
         log_file_short = log_file.replace(lPaths.log_dir + '/', '')
         subprocess.run(get_split_command(split_direction) + [f'less -m "{log_file}"'])
-        subprocess.run(['tmux', 'select-pane', '-T', f'Log:{log_file_short}'])
+        tmux_set_pane_title(f'Log:{log_file_short}')
         rename_window()
 
 
