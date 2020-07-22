@@ -491,7 +491,7 @@ def connect_telnet(host, split_direction):
     # else:
     #     split_command = ['tmux', 'new-window']
     subprocess.run(
-        get_split_command (split_direction) + [
+        get_split_command(split_direction) + [
             f'PROMPT_COMMAND="{home}/tmuxNOC/scripts/kbdfix.sh telnet {host}";TERM=vt100-w bash \
               --rcfile {home}/tmuxNOC/misc/tmux_noc_bashrc'
         ]
@@ -512,7 +512,7 @@ def connect_ssh(host, split_direction):
     # else:
     #     split_command = ['tmux', 'new-window']
     subprocess.run(
-        get_split_command (split_direction) + [
+        get_split_command(split_direction) + [
             f'PROMPT_COMMAND="ssh {host}" bash --rcfile {home}/tmuxNOC/misc/tmux_noc_bashrc'
         ]
     )
