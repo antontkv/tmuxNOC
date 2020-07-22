@@ -281,7 +281,6 @@ def clipboard_menu(split_direction):
         tmux_dm('No content in clipboard.')
 
 
-# TODO: Encoding in check_output
 def move_pane_window(split_direction):
     if split_direction == 'vertical':
         split_argument = '-h'
@@ -319,8 +318,8 @@ def move_pane_window(split_direction):
 
 # TODO: Use lPaths
 def noc_menu(split_direction='new'):
-    home = str(Path.home())
-    script_path = f'{home}/tmuxNOC/scripts/tmux_noc.py'
+    home = lPaths.home
+    script_path = lPaths.script
 
     if ssh_config_hosts() is None:
         ssh_config_hosts_exists = False
