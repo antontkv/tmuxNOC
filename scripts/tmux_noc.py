@@ -436,14 +436,12 @@ def noc_menu(split_direction='new'):
     subprocess.run(command)
 
 
-# TODO: Use lPaths
 def setup_connection(connection_type, split_direction):
-    home = str(Path.home())
     sessions_metadata = load_sessions_metadata()
     if f'last_{connection_type}_session' in sessions_metadata:
         hostname = sessions_metadata[f'last_{connection_type}_session']
     else:
-        hostname = 'hostname'
+        hostname = ''
     command = [
         'tmux',
         'command-prompt',
@@ -451,7 +449,7 @@ def setup_connection(connection_type, split_direction):
         f'{connection_type}:',
         '-I',
         hostname,
-        (f'run "{home}/tmuxNOC/scripts/tmux_noc.py connect_{connection_type} --host \'%1\' '
+        (f'run "{lPaths.script} connect_{connection_type} --host \'%1\' '
          f'--split_direction {split_direction}"'),
     ]
     subprocess.run(command)
