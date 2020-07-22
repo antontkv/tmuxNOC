@@ -456,26 +456,27 @@ def setup_connection(connection_type, split_direction):
 
 
 def connect_telnet(host, split_direction):
-    home = str(Path.home())
+    home = lPaths.home
     subprocess.run(
         get_split_command(split_direction) + [
             f'PROMPT_COMMAND="{home}/tmuxNOC/scripts/kbdfix.sh telnet {host}";TERM=vt100-w bash \
               --rcfile {home}/tmuxNOC/misc/tmux_noc_bashrc'
         ]
     )
-    subprocess.run(['tmux', 'select-pane', '-T', f't/{host}'])
+    tmux_set_pane_title(f't/{host}')
     rename_window()
     save_session('telnet', host)
     pane_log('t', host)
 
+
 def connect_ssh(host, split_direction):
-    home = str(Path.home())
+    home = lPaths.home
     subprocess.run(
         get_split_command(split_direction) + [
             f'PROMPT_COMMAND="ssh {host}" bash --rcfile {home}/tmuxNOC/misc/tmux_noc_bashrc'
         ]
     )
-    subprocess.run(['tmux', 'select-pane', '-T', f's/{host}'])
+    tmux_set_pane_title(f's/{host}')
     rename_window()
     save_session('ssh', host)
     pane_log('s', host)
