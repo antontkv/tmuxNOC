@@ -73,7 +73,7 @@ def save_pane_history(output_file_name, pane_id=':', pipe='o', only_once=False):
         time.sleep(1)
 
 
-def pane_log(connection_type, host):
+def pane_log(connection_type, host, restart=False):
     sessions_metadata = load_sessions_metadata()
     if connection_type == 'l':
         last_session_index = '--'
@@ -93,6 +93,14 @@ def pane_log(connection_type, host):
         '-o',
         f'{lPaths.script} save_pane_history --file_name "{log_filename}" --pane_id #{{pane_id}} -i -'
     ])
+    if restart:
+        subprocess.run([
+            'tmux',
+            'pipe-pane',
+            '-o',
+            f'{lPaths.script} save_pane_history --file_name "{log_filename}" --pane_id #{{pane_id}} -i -'
+        ])
+
 
 
 def search_logs():
@@ -465,7 +473,10 @@ def connect_telnet(host, split_direction):
     tmux_set_pane_title(f't/{host}')
     rename_window()
     save_session('telnet', host)
-    pane_log('t', host)
+    if split_direction == 'reopen':
+        pane_log('t', host, restart=True)
+    else:
+        pane_log('t', host)
 
 
 def connect_ssh(host, split_direction):
@@ -478,7 +489,10 @@ def connect_ssh(host, split_direction):
     tmux_set_pane_title(f's/{host}')
     rename_window()
     save_session('ssh', host)
-    pane_log('s', host)
+    if split_direction == 'reopen':
+        pane_log('s', host, restart=True)
+    else:
+        pane_log('s', host)
 
 
 def rename_window(window_id=':'):
