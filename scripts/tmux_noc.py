@@ -316,7 +316,6 @@ def move_pane_window(split_direction):
 
 
 
-# TODO: Use lPaths
 def noc_menu(split_direction='new'):
     home = lPaths.home
     script_path = lPaths.script
