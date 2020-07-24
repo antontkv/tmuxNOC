@@ -121,7 +121,7 @@ def tmux_dm(message):
 
 
 def tmux_set_pane_title(title):
-    subprocess.run(['tmux', 'select-pane', '-T', title])
+    subprocess.run(['tmux', 'set', '-p', '@pane_name', title])
 
 
 def open_log(history_index, split_direction):
@@ -402,14 +402,14 @@ def noc_menu(split_direction='new'):
         # -----
         'Show Sessions History', 'h',
         (f'{split_command} "less +G $HOME/tmuxNOC/local/sessions_history.log"; '
-         f'select-pane -T "Sessions History"; run "{script_path} rename_window"'),
+         f'set -p @pane_name "Sessions History"; run "{script_path} rename_window"'),
 
         'Open Log File', 'l',
         (f'command-prompt -p "Open Log Number:" \'run "{script_path} open_log '
          f'--history_index %1 --split_direction {split_direction}"\''),
 
         'Search in Logs', 'L',
-        f'{split_command} "{script_path} search_logs"; select-pane -T "grep in logs"',
+        f'{split_command} "{script_path} search_logs"; set -p @pane_name "grep in logs"',
         # -----
     ]
     if split_direction == 'new':
@@ -499,17 +499,17 @@ def rename_window(window_id=':'):
     if window_id is None:
         window_id = ':'
     panes_list = subprocess.check_output(
-        ['tmux', 'list-panes', '-t', window_id, '-F', '#{pane_title}'],
+        ['tmux', 'list-panes', '-t', window_id, '-F', '#{@pane_name}'],
         encoding='UTF-8'
     ).split('\n')[:-1]
     rename = False
     window_title = []
-    for pane_title in panes_list:
-        if pane_title == '':
+    for pane_name in panes_list:
+        if pane_name == '':
             window_title.append('local')
         else:
             rename = True
-            window_title.append(pane_title)
+            window_title.append(pane_name)
     if rename:
         subprocess.run(['tmux', 'rename-window', '-t', window_id, '\u2503'.join(window_title)])
     else:
