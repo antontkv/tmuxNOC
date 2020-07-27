@@ -1,6 +1,3 @@
 .vscode/
-tmux-config/
 plugins/
-.logins
-sessions.json
 local/

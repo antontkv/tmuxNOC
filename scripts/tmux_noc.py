@@ -31,9 +31,9 @@ class lPaths:
     script = f'{tmuxNOC}/scripts/tmux_noc.py'
     paste = f'{tmuxNOC}/scripts/paste.sh'
     log_dir = f'{tmuxNOC}/local/log'
-    sessions_metadata = f'{tmuxNOC}/sessions.json'
+    sessions_metadata = f'{tmuxNOC}/local/sessions.json'
     sessions_history = f'{tmuxNOC}/local/sessions_history.log'
-    logins = f'{tmuxNOC}/.logins'
+    logins = f'{tmuxNOC}/local/.logins'
 
 
 def create_dir(filename):
