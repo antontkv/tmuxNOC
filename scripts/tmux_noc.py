@@ -356,7 +356,7 @@ def noc_menu(split_direction='new'):
         split_variants = [
             'Split Horizontal', '|', f'run "{script_path} noc_menu --split_direction horizontal"',
             'Open in New Window', 'n', f'run "{script_path} noc_menu --split_direction new"',
-            'Reopen in Current Pane', 'r', f'run "{script_path} noc_menu --split_direction reopen"',
+            'Open in Current Pane', 'r', f'run "{script_path} noc_menu --split_direction reopen"',
             '',
         ]
     elif split_direction == 'horizontal':
@@ -365,12 +365,12 @@ def noc_menu(split_direction='new'):
         split_variants = [
             'Split Vertical', '_', f'run "{script_path} noc_menu --split_direction vertical"',
             'Open in New Window', 'n', f'run "{script_path} noc_menu --split_direction new"',
-            'Reopen in Current Pane', 'r', f'run "{script_path} noc_menu --split_direction reopen"',
+            'Open in Current Pane', 'r', f'run "{script_path} noc_menu --split_direction reopen"',
             '',
         ]
     elif split_direction == 'reopen':
         split_command = 'respawn-pane -k'
-        split_name = 'Reopen in Current Pane'
+        split_name = 'Open in Current Pane'
         split_variants = [
             'Split Vertical', '_', f'run "{script_path} noc_menu --split_direction vertical"',
             'Split Horizontal', '|', f'run "{script_path} noc_menu --split_direction horizontal"',
@@ -383,7 +383,7 @@ def noc_menu(split_direction='new'):
         split_variants = [
             'Split Vertical', '_', f'run "{script_path} noc_menu --split_direction vertical"',
             'Split Horizontal', '|', f'run "{script_path} noc_menu --split_direction horizontal"',
-            'Reopen in Current Pane', 'r', f'run "{script_path} noc_menu --split_direction reopen"',
+            'Open in Current Pane', 'r', f'run "{script_path} noc_menu --split_direction reopen"',
             '',
         ]
 
