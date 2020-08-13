@@ -6,6 +6,7 @@ tmux config and scripts for people, who have to manage a lot of network devices.
 - [What it does](#what-it-does)
 - [Installation](#installation)
 - [How it works](#how-it-works)
+  - [Sending login/password sequence](#sending-loginpassword-sequence)
 
 ## Why?
 
@@ -51,3 +52,27 @@ Tmux, expect and other dependencies will be installed by the install script, **b
 This is work in progress project, especially documentation. Later I will add explanation how everything works. For now, in the code itself I tried to make comments and descriptions, some explanation about how everything works you can find there.
 
 Information about key bindings you can find in [KEYS.md](https://github.com/Technik-J/tmuxNOC/blob/master/KEYS.md), but it also yet not finished.
+
+### Sending login/password sequence
+
+You can send predetermined login/password sequence to the terminal. For that you need to have file `.logins` in `~/tmuxNOC/local` directory with this stricture:
+
+```
+LOGIN1=user1
+PASS1=password1
+LOGIN2=user2
+PASS2=password2
+```
+
+You can have multiple logins in this file. To send them to the terminal use `Alt + login_number`. For example `Alt + 1` key binding to send `LOGIN1` and `PASS1` and so on. 
+
+This lines in `tmux.conf` are setting key bindings:
+
+```
+bind -n M-1 run -b "~/tmuxNOC/scripts/tmux_noc.py login --login_number 1"
+bind -n M-2 run -b "~/tmuxNOC/scripts/tmux_noc.py login --login_number 2"
+```
+
+As you can see, there are only two keys configured, but you can add more, if you need.
+
+Of course you **should not** store login credentials in plain text at systems that you do not trust and not only you have root rights. I even say, that you should not store login credential in plain text anywhere, but I still thinking how to store it securely and for script to access it. For now set read write permission only for your user for this file, so it will stay only between you and root.
