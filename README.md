@@ -44,3 +44,5 @@ Tmux, expect and other dependencies will be installed by the install script, **b
 ## How it works
 
 This is work in progress project, especially documentation. Later I will add explanation how everything works. For now, in the code itself I tried to make comments and descriptions, some explanation about how everything works you can find there.
+
+Information about key bindings you can find in [KEYS.md](https://github.com/Technik-J/tmuxNOC/blob/master/KEYS.md), but it also yet not finished.
