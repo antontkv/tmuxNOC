@@ -1,6 +1,11 @@
-# tmuxNOC
+# tmuxNOC <!-- omit in toc -->
 
 tmux config and scripts for people, who have to manage a lot of network devices.
+
+- [Why?](#why)
+- [What it does](#what-it-does)
+- [Installation](#installation)
+- [How it works](#how-it-works)
 
 ## Why?
 
