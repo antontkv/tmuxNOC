@@ -131,7 +131,7 @@ More information about clipboard integration with tmux you can find in [tmux wik
 
 ### Sessions history and writing/reading logs
 
-When you connect to the host, information about when and to which host is stored in `local/sessions_history.log`. You can open it with *Show Sessions History* from tmuxNOC menu. It written in this format:
+When you connect to the host, information about when and to which host is stored in `local/sessions_history.log`. You can open it with *Show Sessions History* from tmuxNOC menu. It's written in this format:
 
 ```
 # 13.07.2020 // The connections from the same date are grouped
