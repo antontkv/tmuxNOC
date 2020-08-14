@@ -10,6 +10,9 @@ tmux config and scripts for people, who have to manage a lot of network devices.
   - [Sending login/password sequence](#sending-loginpassword-sequence)
   - [Can I use this script with my own .tmux.conf?](#can-i-use-this-script-with-my-own-tmuxconf)
   - [How telnet and SSH connections are made](#how-telnet-and-ssh-connections-are-made)
+  - [Clipboard integration](#clipboard-integration)
+  - [Sessions history and writing and reading logs](#sessions-history-and-writing-and-reading-logs)
+  - [Installing and using tmux on remote host](#installing-and-using-tmux-on-remote-host)
 
 ## Why?
 
@@ -115,3 +118,41 @@ After you chose too connect to *New telnet* or *New SSH* you will be prompted to
 New tmux pane will be created that will run bash with custom rcfile `misc/tmux_noc_bashrc` and environment variable `PROMPT_COMMAND` set to *ssh* or *telnet*. So after you disconnected from the host, you can hit Enter to reconnect.
 
 For *telnet* some extra steps will be taken. The `TERM` will be set to `vt100-w` and *telnet* command will be run through `scripts/kbdfix.sh` that uses `expect` to fix backspace and delete keys. The reason why you can find [here](http://www.afterstep.org/keyboard.html).
+
+### Clipboard integration
+
+`scripts/yank.sh` and `scripts/paste.sh` are responsible for integration with system clipboard.
+
+`yank.sh` pretty much a copy from [here](https://github.com/samoshkin/tmux-config/blob/master/tmux/yank.sh). It used for setting clipboard content when you select text in tmux.
+
+`paste.sh` is used to set tmux buffer with the content from system clipboard. It used for pasting with right mouse button, and for connecting to host from clipboard. For Windows you need to compile `misc/paste.cs`, the instructions of how to are in this file.
+
+More information about clipboard integration with tmux you can find in [tmux wiki](https://github.com/tmux/tmux/wiki/Clipboard).
+
+### Sessions history and writing and reading logs
+
+When you connect to the host, information about when and to which host is stored in `local/sessions_history.log`. You can open it with *Show Sessions History* from tmuxNOC menu. It writhen in this format:
+
+```
+# 13.07.2020 // The connections from the same date are grouped
+    // connection_number date time connection_type hostname
+    220 13.07.2020 11:34:08 ssh example.com
+    221 13.07.2020 15:45:30 telnet 10.0.0.1
+```
+
+Each connection created from tmuxNOC menu is logged. Terminal log is stored in separate files. The log file naming look like this `local/log/{year}/{month}/{hour}_{minute}_{second}---!{connection_number}_{short_connection_type}_{hostname}.log`.
+
+You can view log file by selecting *Open Log File* from tmuxNOC menu and entering connection number.
+
+To search in logs you can use *Search in Logs* from tmuxNOC menu. It will open new pane, where you can enter a search query.
+
+### Installing and using tmux on remote host
+
+You can use Ansible playbook `remote_install_playbook.yml` to install tmux and needed config files to the remote host. You will need sudo rights and playbook only has *apt* package manager support. For quick reference, this is how you can do it for one host:
+
+```
+ansible-playbook -K -u user_on_the_remote -i hostname, remote_install_playbook.yml
+# It then will ask for sudo password on the remote host
+```
+
+For remote connection tmux uses addition config `tmux.remote.conf`. It sets status bar on top and changes it colors. Also **changes prefix** key to `Alt + a`. This config will be used every time that you connect via ssh, to not use it, set `tmux_do_not_use_remote_config` environment variable to `true`.
