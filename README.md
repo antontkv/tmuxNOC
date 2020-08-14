@@ -9,7 +9,7 @@ tmux config and scripts for people, who have to manage a lot of network devices.
   - [Project structure](#project-structure)
   - [Sending login/password sequence](#sending-loginpassword-sequence)
   - [Can I use this script with my own .tmux.conf?](#can-i-use-this-script-with-my-own-tmuxconf)
-  - [How telnet and SSH connections is made](#how-telnet-and-ssh-connections-is-made)
+  - [How telnet and SSH connections are made](#how-telnet-and-ssh-connections-are-made)
 
 ## Why?
 
@@ -108,7 +108,7 @@ Of course you **should not** store login credentials in plain text at systems th
 
 Yes. Find `tmuxNOC` section in `tmux.conf`, there you find all the configuration for tmux that uses main `scripts/tmux_noc.py` script. You can copy it to your own config.
 
-### How telnet and SSH connections is made
+### How telnet and SSH connections are made
 
 After you chose too connect to *New telnet* or *New SSH* you will be prompted to enter hostname. Everything you type there will be used as an arguments to the `telnet` and `ssh` commands on your system, so you can use any arguments you like.
 
