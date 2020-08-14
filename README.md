@@ -11,7 +11,7 @@ tmux config and scripts for people, who have to manage a lot of network devices.
   - [Can I use this script with my own .tmux.conf?](#can-i-use-this-script-with-my-own-tmuxconf)
   - [How telnet and SSH connections are made](#how-telnet-and-ssh-connections-are-made)
   - [Clipboard integration](#clipboard-integration)
-  - [Sessions history and writing and reading logs](#sessions-history-and-writing-and-reading-logs)
+  - [Sessions history and writing/reading logs](#sessions-history-and-writingreading-logs)
   - [Installing and using tmux on remote host](#installing-and-using-tmux-on-remote-host)
 
 ## Why?
@@ -129,7 +129,7 @@ For *telnet* some extra steps will be taken. The `TERM` will be set to `vt100-w`
 
 More information about clipboard integration with tmux you can find in [tmux wiki](https://github.com/tmux/tmux/wiki/Clipboard).
 
-### Sessions history and writing and reading logs
+### Sessions history and writing/reading logs
 
 When you connect to the host, information about when and to which host is stored in `local/sessions_history.log`. You can open it with *Show Sessions History* from tmuxNOC menu. It writhen in this format:
 
