@@ -6,7 +6,9 @@ tmux config and scripts for people, who have to manage a lot of network devices.
 - [What it does](#what-it-does)
 - [Installation](#installation)
 - [How it works](#how-it-works)
+- [Project structure](#project-structure)
   - [Sending login/password sequence](#sending-loginpassword-sequence)
+- [Can I use this script with my own .tmux.conf?](#can-i-use-this-script-with-my-own-tmuxconf)
 
 ## Why?
 
@@ -53,6 +55,30 @@ This is work in progress project, especially documentation. Later I will add exp
 
 Information about key bindings you can find in [KEYS.md](https://github.com/Technik-J/tmuxNOC/blob/master/KEYS.md), but it also yet not finished.
 
+## Project structure
+
+```
+|-- local/                // This directory is automatically generated
+|   |-- log/                    // Contains terminal logs from connected hosts
+|   |-- .logins                 // User credentials for automated login
+|   |-- sessions.json           // Sessions metadata
+|   |-- sessions_history.log    // History of connected hosts
+|-- misc/
+    |-- paste.cs                // Getting clipboard content from Windows, needs to be compiled
+    |-- tmux_noc_bashrc         // .bashrc that used for connections
+|-- scripts/
+    |-- kbdfix.sh               // Fixes backspace and delete key on VT100 terminal
+    |-- paste.sh                // Getting the content of clipboard
+    |-- yank.sh                 // Setting the content of clipboard
+    |-- tmux_noc.py             // Main Python script
+|-- install.sh                  // Installation script
+|-- tmux.conf                   // tmux config
+|-- tmux.remote.conf            // tmux config that will be used on remote hosts
+|-- remote_install_playbook.yml // Ansible playbook for installing tmux and needed files to remote host
+|-- KEYS.md                     // Describes key bindings
+|-- README.md                   // This file
+```
+
 ### Sending login/password sequence
 
 You can send predetermined login/password sequence to the terminal. For that you need to have file `.logins` in `~/tmuxNOC/local` directory with this stricture:
@@ -76,3 +102,8 @@ bind -n M-2 run -b "~/tmuxNOC/scripts/tmux_noc.py login --login_number 2"
 As you can see, there are only two keys configured, but you can add more, if you need.
 
 Of course you **should not** store login credentials in plain text at systems that you do not trust and not only you have root rights. I even say, that you should not store login credential in plain text anywhere, but I still thinking how to store it securely and for script to access it. For now set read write permission only for your user for this file, so it will stay only between you and root.
+
+## Can I use this script with my own .tmux.conf?
+
+Yes. Find `tmuxNOC` section in `tmux.conf`, there you find all the configuration for tmux that uses main `tmux_noc.py` script. You can copy it to your own config.
+
