@@ -38,7 +38,7 @@ After entering `Alt + q` you will see this menu:
 
 ## Installation 
 
-Just clone the repo into your home directory, because scripts rely on that this project resides in `~/tmuxNOC`. Then run `install.sh`. It will replace your `.tmux.conf`, so make a copy it you need it.
+Just clone the repo into your home directory, because scripts rely on that this project resides in `~/tmuxNOC`. Then run `install.sh`. It will replace your `.tmux.conf`, so make a copy, if you need it.
 
 This config and scripts need:
 - tmux 3.1b
