@@ -9,6 +9,7 @@ tmux config and scripts for people, who have to manage a lot of network devices.
   - [Project structure](#project-structure)
   - [Sending login/password sequence](#sending-loginpassword-sequence)
   - [Can I use this script with my own .tmux.conf?](#can-i-use-this-script-with-my-own-tmuxconf)
+  - [How telnet and SSH connections is made](#how-telnet-and-ssh-connections-is-made)
 
 ## Why?
 
@@ -105,5 +106,12 @@ Of course you **should not** store login credentials in plain text at systems th
 
 ### Can I use this script with my own .tmux.conf?
 
-Yes. Find `tmuxNOC` section in `tmux.conf`, there you find all the configuration for tmux that uses main `tmux_noc.py` script. You can copy it to your own config.
+Yes. Find `tmuxNOC` section in `tmux.conf`, there you find all the configuration for tmux that uses main `scripts/tmux_noc.py` script. You can copy it to your own config.
 
+### How telnet and SSH connections is made
+
+After you chose too connect to *New telnet* or *New SSH* you will be prompted to enter hostname. Everything you type there will be used as an arguments to the `telnet` and `ssh` commands on your system, so you can use any arguments you like.
+
+New tmux pane will be created that will run bash with custom rcfile `misc/tmux_noc_bashrc` and environment variable `PROMPT_COMMAND` set to *ssh* or *telnet*. So after you disconnected from the host, you can hit Enter to reconnect.
+
+For *telnet* some extra steps will be taken. The `TERM` will be set to `vt100-w` and *telnet* command will be run through `scripts/kbdfix.sh` that uses `expect` to fix backspace and delete keys. The reason why you can find [here](http://www.afterstep.org/keyboard.html).
