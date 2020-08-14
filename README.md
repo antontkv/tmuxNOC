@@ -59,10 +59,10 @@ Information about key bindings you can find in [KEYS.md](https://github.com/Tech
 
 ```
 |-- local/                // This directory is automatically generated
-|   |-- log/                    // Contains terminal logs from connected hosts
-|   |-- .logins                 // User credentials for automated login
-|   |-- sessions.json           // Sessions metadata
-|   |-- sessions_history.log    // History of connected hosts
+    |-- log/                    // Contains terminal logs from connected hosts
+    |-- .logins                 // User credentials for automated login
+    |-- sessions.json           // Sessions metadata
+    |-- sessions_history.log    // History of connected hosts
 |-- misc/
     |-- paste.cs                // Getting clipboard content from Windows, needs to be compiled
     |-- tmux_noc_bashrc         // .bashrc that used for connections
