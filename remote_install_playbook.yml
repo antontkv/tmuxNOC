@@ -7,6 +7,7 @@
     - name: Get installed tmux version
       shell: tmux -V
       register: get_tmux_ver
+      ignore_errors: yes
 
     - name: Remove tmux installed from apt
       apt:
@@ -24,6 +25,7 @@
           - bison
           - pkg-config
           - make
+          - xsel
         state: latest
         update_cache: yes
       become: yes
