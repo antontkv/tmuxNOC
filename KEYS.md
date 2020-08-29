@@ -1,3 +1,27 @@
+# Prefix
+
+Keyboard shortcuts after prefix key.
+
+| Key   | Description                 |
+| ----- | --------------------------- |
+| `Tab` | Select last selected window |
+| `C-l` | Toggle terminal logging     |
+|       |                             |
+|       |                             |
+|       |                             |
+|       |                             |
+|       |                             |
+|       |                             |
+|       |                             |
+|       |                             |
+|       |                             |
+|       |                             |
+|       |                             |
+|       |                             |
+|       |                             |
+
+
+
 # copy-mode-vi
 
 Keyboard shortcuts for Copy mode.
@@ -86,30 +110,8 @@ Keyboard shortcuts for Copy mode.
 
 ## Miscellaneous
 
-| Key                 | Description                                                  |
-| ------------------- | ------------------------------------------------------------ |
-| `1-9`               | Repeat key 1-9 times<br />e.g: `3` and then `K` will scroll 3 lines up. |
-| `:`                 | Go to line number, count from the bottom                     |
-| `C-c` or `q`        | Exit copy mode                                               |
-
-# Prefix
-
-Keyboard shortcuts after prefix key.
-
-| Key  | Description                                                  |
-| ---- | ------------------------------------------------------------ |
-|`Tab`|Select last selected window|
-|`C-l`|Toggle terminal logging|
-|||
-|||
-|||
-|||
-|||
-|||
-|||
-|||
-|||
-|||
-|||
-|||
-|||
+| Key          | Description                                                  |
+| ------------ | ------------------------------------------------------------ |
+| `1-9`        | Repeat key 1-9 times<br/>e.g: `3` and then `K` will scroll 3 lines up. |
+| `:`          | Go to line number, count from the bottom                     |
+| `C-c` or `q` | Exit copy mode                                               |
