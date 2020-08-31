@@ -398,7 +398,7 @@ def noc_menu(split_direction='new'):
         split_command = 'split-window -v'
         split_name = 'Vertical'
         split_variants = [
-            'Split Horizontal', '|', f'run "{script_path} noc_menu --split_direction horizontal"',
+            'Split Horizontal', '\\', f'run "{script_path} noc_menu --split_direction horizontal"',
             'Open in New Window', 'n', f'run "{script_path} noc_menu --split_direction new"',
             'Open in Current Pane', 'r', f'run "{script_path} noc_menu --split_direction reopen"',
             '',
@@ -407,7 +407,7 @@ def noc_menu(split_direction='new'):
         split_command = 'split-window -h'
         split_name = 'Horizontal'
         split_variants = [
-            'Split Vertical', '_', f'run "{script_path} noc_menu --split_direction vertical"',
+            'Split Vertical', '-', f'run "{script_path} noc_menu --split_direction vertical"',
             'Open in New Window', 'n', f'run "{script_path} noc_menu --split_direction new"',
             'Open in Current Pane', 'r', f'run "{script_path} noc_menu --split_direction reopen"',
             '',
@@ -416,8 +416,8 @@ def noc_menu(split_direction='new'):
         split_command = 'respawn-pane -k'
         split_name = 'Open in Current Pane'
         split_variants = [
-            'Split Vertical', '_', f'run "{script_path} noc_menu --split_direction vertical"',
-            'Split Horizontal', '|', f'run "{script_path} noc_menu --split_direction horizontal"',
+            'Split Vertical', '-', f'run "{script_path} noc_menu --split_direction vertical"',
+            'Split Horizontal', '\\', f'run "{script_path} noc_menu --split_direction horizontal"',
             'Open in New Window', 'n', f'run "{script_path} noc_menu --split_direction new"',
             '',
         ]
@@ -425,8 +425,8 @@ def noc_menu(split_direction='new'):
         split_command = 'new-window'
         split_name = 'New Window'
         split_variants = [
-            'Split Vertical', '_', f'run "{script_path} noc_menu --split_direction vertical"',
-            'Split Horizontal', '|', f'run "{script_path} noc_menu --split_direction horizontal"',
+            'Split Vertical', '-', f'run "{script_path} noc_menu --split_direction vertical"',
+            'Split Horizontal', '\\', f'run "{script_path} noc_menu --split_direction horizontal"',
             'Open in Current Pane', 'r', f'run "{script_path} noc_menu --split_direction reopen"',
             '',
         ]
