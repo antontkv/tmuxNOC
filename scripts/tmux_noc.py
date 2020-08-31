@@ -114,7 +114,6 @@ def pane_log(connection_type, host, restart=False):
         ])
 
 
-
 def search_logs():
     """
     grep in log directory.
@@ -364,7 +363,6 @@ def move_pane_window(split_direction):
         '-x', 'P',
         '-y', 'S',
     ] + windows_menu)
-
 
 
 def noc_menu(split_direction='new'):

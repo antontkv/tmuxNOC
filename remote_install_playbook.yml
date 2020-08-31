@@ -35,33 +35,33 @@
       file:
         path: ~/tmuxNOC
         state: directory
-    
+
     - name: "Download tmux version {{ tmux_version }}"
       get_url:
         url: "https://github.com/tmux/tmux/releases/download/{{ tmux_version }}/tmux-{{ tmux_version }}.tar.gz"
         dest: ~/tmuxNOC
       when: "tmux_version not in get_tmux_ver.stdout"
-    
+
     - name: Create temporary directory for tmux build.
       tempfile:
         state: directory
         suffix: tmux_temp
       register: tmux_temp_dir
       when: "tmux_version not in get_tmux_ver.stdout"
-    
+
     - name: "Unpack tmux version {{ tmux_version }}"
       unarchive:
         src: "~/tmuxNOC/tmux-{{ tmux_version }}.tar.gz"
         dest: "{{ tmux_temp_dir.path }}"
         remote_src: yes
       when: "tmux_version not in get_tmux_ver.stdout"
-    
+
     - name: Delete tmux archive
       file:
         path: "~/tmuxNOC/tmux-{{ tmux_version }}.tar.gz"
         state: absent
       when: "tmux_version not in get_tmux_ver.stdout"
-    
+
     - name: Run ./configure
       shell: ./configure
       args:
@@ -74,28 +74,28 @@
       make:
         chdir: "{{ tmux_temp_dir.path }}/tmux-{{ tmux_version }}"
       when: "tmux_version not in get_tmux_ver.stdout"
-    
+
     - name: Install tmux
       make:
         chdir: "{{ tmux_temp_dir.path }}/tmux-{{ tmux_version }}"
         target: install
       become: yes
       when: "tmux_version not in get_tmux_ver.stdout"
-    
+
     - name: Install or update Tmux Plugin Manager
       git:
         repo: https://github.com/tmux-plugins/tpm
         dest: ~/tmuxNOC/plugins/tpm
-    
+
     - name: Checking for ~/.tmux.conf
       stat:
         path: ~/.tmux.conf
       register: tmux_conf_file
-    
+
     - name: Move ~/.tmux.conf to ~/.tmux.conf.bak
       shell: mv ~/.tmux.conf ~/.tmux.conf.bak
       when: tmux_conf_file.stat.exists
-    
+
     - name: Copy .tmux.conf
       copy:
         src: tmux.conf

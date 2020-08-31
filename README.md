@@ -42,7 +42,7 @@ After entering `Alt + q` you will see this menu:
 
 - Next section lists five last hosts that you connected to, so you can reconnect to them quickly.
 
-## Installation 
+## Installation
 
 Just clone the repo into your home directory, because scripts rely on that this project resides in `~/tmuxNOC`. Then run `install.sh`. It will replace your `.tmux.conf`, so make a copy, if you need it.
 
@@ -94,7 +94,7 @@ LOGIN2=user2
 PASS2=password2
 ```
 
-You can have multiple logins in this file. To send them to the terminal use `Alt + login_number`. For example `Alt + 1` key binding to send `LOGIN1` and `PASS1` and so on. 
+You can have multiple logins in this file. To send them to the terminal use `Alt + login_number`. For example `Alt + 1` key binding to send `LOGIN1` and `PASS1` and so on.
 
 This lines in `tmux.conf` are setting key bindings:
 
