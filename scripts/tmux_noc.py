@@ -8,7 +8,6 @@ from pathlib import Path
 import os
 from errno import EEXIST
 import sys
-import re
 
 
 class ANSIColors:
@@ -154,7 +153,6 @@ def open_log(history_index, split_direction):
     if log_file is None:
         tmux_dm(f'Log file with index {history_index} not found.')
     else:
-        host = log_file.split('_')[-1].replace('.log', '')
         log_file_short = log_file.replace(lPaths.log_dir + '/', '')
         subprocess.run(get_split_command(split_direction) + [f'less -m "{log_file}"'])
         tmux_set_pane_name(f'Log:{log_file_short}')
@@ -369,7 +367,6 @@ def noc_menu(split_direction='new'):
     """
     Show main tmuxNOC menu.
     """
-    home = lPaths.home
     script_path = lPaths.script
 
     if ssh_config_hosts() is None:
@@ -679,7 +676,7 @@ def send_with_delay(pane_id):
         else:
             break
 
-    rows, columns = subprocess.check_output(['stty', 'size']).decode().split()
+    rows = subprocess.check_output(['stty', 'size']).decode().split()[0]
     rows = int(rows) - 2
     rows_offset = 0
     for index, command in enumerate(commands):
