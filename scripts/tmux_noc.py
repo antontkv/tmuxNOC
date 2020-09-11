@@ -541,26 +541,31 @@ def connect_ssh(host, split_direction):
 
 def rename_window(window_id=':'):
     """
-    Names windows according to pane name.
+    Names windows according to pane name. If user option @window_title is set for window it won't be renamed.
     """
     if window_id is None:
         window_id = ':'
+
+    window_title = subprocess.check_output(['tmux', 'show', '-t', window_id, '-w', '@window_title'], encoding='UTF-8')
+    if window_title:
+        return 0
+
     panes_list = subprocess.check_output(
         ['tmux', 'list-panes', '-t', window_id, '-F', '#{@pane_name}'],
         encoding='UTF-8'
     ).split('\n')[:-1]
     rename = False
-    window_title = []
+    window_name = []
     for pane_name in panes_list:
         if pane_name == '':
-            window_title.append('local')
+            window_name.append('local')
         else:
             rename = True
-            window_title.append(pane_name)
+            window_name.append(pane_name)
     if rename:
-        subprocess.run(['tmux', 'rename-window', '-t', window_id, '\u2503'.join(window_title)])
+        subprocess.run(['tmux', 'rename-window', '-t', window_id, '\u2503'.join(window_name)])
     else:
-        subprocess.run(['tmux', 'set', '-w', '-t', window_id, 'automatic-rename'])
+        subprocess.run(['tmux', 'set', '-w', '-t', window_id, 'automatic-rename', 'on'])
 
 
 def rename_windows():
