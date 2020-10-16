@@ -103,14 +103,14 @@ def pane_log(connection_type, host, restart=False):
         'pipe-pane',
         '-o',
         f'{lPaths.script} save_pane_history --file_name "{log_filename}" --pane_id #{{pane_id}} -i -'
-    ])
+    ], check=True)
     if restart:
         subprocess.run([
             'tmux',
             'pipe-pane',
             '-o',
             f'{lPaths.script} save_pane_history --file_name "{log_filename}" --pane_id #{{pane_id}} -i -'
-        ])
+        ], check=True)
 
 
 def search_logs():
@@ -122,7 +122,8 @@ def search_logs():
     if not query.isspace() and query != "":
         subprocess.run(
             ['grep', '--color=always', '-n', '-r', query, '.'],
-            cwd=f'{lPaths.home}/tmuxNOC/local/log/'
+            cwd=f'{lPaths.home}/tmuxNOC/local/log/',
+            check=True
         )
     else:
         print(f'{ANSIColors.FAIL}Empty query.{ANSIColors.ENDC}')
@@ -133,14 +134,14 @@ def tmux_dm(message):
     """
     Display message in status line.
     """
-    subprocess.run(['tmux', 'display-message', message])
+    subprocess.run(['tmux', 'display-message', message], check=True)
 
 
 def tmux_set_pane_name(name):
     """
     Setting pane name.
     """
-    subprocess.run(['tmux', 'set', '-p', '@pane_name', name])
+    subprocess.run(['tmux', 'set', '-p', '@pane_name', name], check=True)
 
 
 def open_log(history_index, split_direction):
@@ -154,7 +155,7 @@ def open_log(history_index, split_direction):
         tmux_dm(f'Log file with index {history_index} not found.')
     else:
         log_file_short = log_file.replace(lPaths.log_dir + '/', '')
-        subprocess.run(get_split_command(split_direction) + [f'less -m "{log_file}"'])
+        subprocess.run(get_split_command(split_direction) + [f'less -m "{log_file}"'], check=True)
         tmux_set_pane_name(f'Log:{log_file_short}')
         rename_window()
 
@@ -297,7 +298,7 @@ def ssh_menu(split_direction):
                 (f'run "{lPaths.script} connect_ssh --host \'{host}\' '
                  f'--split_direction {split_direction}"'),
             ]
-    subprocess.run(command)
+    subprocess.run(command, check=True)
 
 
 def clipboard_menu(split_direction):
@@ -321,7 +322,7 @@ def clipboard_menu(split_direction):
             f'ssh {clipboard_first_word_short}', 'V',
             (f'run "{lPaths.script} connect_ssh '
              f'--host \'{clipboard_first_word}\' --split_direction {split_direction}"'),
-        ])
+        ], check=True)
     else:
         tmux_dm('No content in clipboard.')
 
@@ -360,7 +361,7 @@ def move_pane_window(split_direction):
         '-T', '#[align=centre]Move Pane to:',
         '-x', 'P',
         '-y', 'S',
-    ] + windows_menu)
+    ] + windows_menu, check=True)
 
 
 def noc_menu(split_direction='new'):
@@ -481,7 +482,7 @@ def noc_menu(split_direction='new'):
         ]
     if last_sessions_menu_block is not None:
         command += last_sessions_menu_block
-    subprocess.run(command)
+    subprocess.run(command, check=True)
 
 
 def setup_connection(connection_type, split_direction):
@@ -503,7 +504,7 @@ def setup_connection(connection_type, split_direction):
         (f'run "{lPaths.script} connect_{connection_type} --host \'%1\' '
          f'--split_direction {split_direction}"'),
     ]
-    subprocess.run(command)
+    subprocess.run(command, check=True)
 
 
 def connect_telnet(host, split_direction):
@@ -512,7 +513,8 @@ def connect_telnet(host, split_direction):
         get_split_command(split_direction) + [
             f'PROMPT_COMMAND="{home}/tmuxNOC/scripts/kbdfix.sh telnet {host}";TERM=vt100-w bash \
               --rcfile {home}/tmuxNOC/misc/tmux_noc_bashrc'
-        ]
+        ],
+        check=True
     )
     tmux_set_pane_name(f't/{host}')
     rename_window()
@@ -528,7 +530,8 @@ def connect_ssh(host, split_direction):
     subprocess.run(
         get_split_command(split_direction) + [
             f'PROMPT_COMMAND="ssh {host}" bash --rcfile {home}/tmuxNOC/misc/tmux_noc_bashrc'
-        ]
+        ],
+        check=True
     )
     tmux_set_pane_name(f's/{host}')
     rename_window()
@@ -563,9 +566,9 @@ def rename_window(window_id=':'):
             rename = True
             window_name.append(pane_name)
     if rename:
-        subprocess.run(['tmux', 'rename-window', '-t', window_id, '\u2503'.join(window_name)])
+        subprocess.run(['tmux', 'rename-window', '-t', window_id, '\u2503'.join(window_name)], check=True)
     else:
-        subprocess.run(['tmux', 'set', '-w', '-t', window_id, 'automatic-rename', 'on'])
+        subprocess.run(['tmux', 'set', '-w', '-t', window_id, 'automatic-rename', 'on'], check=True)
 
 
 def rename_windows():
@@ -586,7 +589,8 @@ def tmux_send(string, conformation_symbol='Enter', target_pane=':'):
     Send string to the pane.
     """
     subprocess.run(
-        ['tmux', 'send-keys', '-t', target_pane, string, f'{conformation_symbol}']
+        ['tmux', 'send-keys', '-t', target_pane, string, f'{conformation_symbol}'],
+        check=True
     )
 
 
