@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 import subprocess
 import time
 import argparse
@@ -511,7 +511,7 @@ def connect_telnet(host, split_direction):
     home = lPaths.home
     subprocess.run(
         get_split_command(split_direction) + [
-            f'PROMPT_COMMAND="{home}/tmuxNOC/scripts/kbdfix.sh telnet {host}";TERM=vt100-w bash \
+            f'PROMPT_COMMAND="{home}/tmuxNOC/scripts/kbdfix.sh telnet {host}" TERM=vt100-w bash \
               --rcfile {home}/tmuxNOC/misc/tmux_noc_bashrc'
         ],
         check=True
@@ -710,6 +710,7 @@ def send_with_delay(pane_id):
 
 
 if __name__ == "__main__":
+    create_dir(f'{lPaths.tmuxNOC}/local/')
     parser = argparse.ArgumentParser(description='Connect to telnet or ssh from tmux.')
     parser.add_argument('type', choices=[
         'login',
