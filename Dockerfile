@@ -1,27 +1,19 @@
 FROM python:3.8.7-slim
-ENV TMUX_VERSION=3.2-rc
-ENV TMUX_RC=3
 
 # Installing dependencies
 RUN set -x; \
     apt-get update && \
-    apt-get install -y wget tar libevent-dev ncurses-dev build-essential bison pkg-config expect xsel git telnet
-
-# Downloading and unpacking tmux source files
+    apt-get install -y wget libutempter0 expect xsel git telnet
 RUN set -x; \
-    mkdir -p tmux-source && \
-    cd tmux-source && \
-    wget https://github.com/tmux/tmux/releases/download/$TMUX_VERSION/tmux-$TMUX_VERSION$TMUX_RC.tar.gz && \
-    tar -zxf tmux-$TMUX_VERSION$TMUX_RC.tar.gz --strip-components=1 && \
-    rm -f tmux-$TMUX_VERSION$TMUX_RC.tar.gz
+    wget http://ftp.us.debian.org/debian/pool/main/libe/libevent/libevent-2.1-7_2.1.12-stable-1_amd64.deb && \
+    dpkg -i libevent-2.1-7_2.1.12-stable-1_amd64.deb && \
+    rm libevent-2.1-7_2.1.12-stable-1_amd64.deb
 
-# Building and installing tmux
+# Downloading .deb and istalling
 RUN set -x; \
-    cd tmux-source && \
-    ./configure && \
-    make && make install && \
-    cd - && \
-    rm -rf tmux-source
+    wget http://ftp.us.debian.org/debian/pool/main/t/tmux/tmux_3.2~rc3-1_amd64.deb && \
+    dpkg -i tmux_3.2~rc3-1_amd64.deb && \
+    rm tmux_3.2~rc3-1_amd64.deb
 
 # Creating user
 RUN useradd -ms /bin/bash tmuxnoc
