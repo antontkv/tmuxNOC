@@ -15,6 +15,8 @@ if is_app_installed pbcopy; then
   copy_backend="pbcopy"
 elif is_app_installed reattach-to-user-namespace; then
   copy_backend="reattach-to-user-namespace pbcopy"
+elif is_app_installed win32yank.exe; then
+  copy_backend="win32yank.exe -i"
 elif is_app_installed clip.exe; then
   copy_backend="clip.exe"
 elif [ -n "${DISPLAY-}" ] && is_app_installed xsel; then

@@ -15,12 +15,14 @@ is_app_installed() {
 paste_backend=""
 if [ -n "${DISPLAY-}" ] && is_app_installed xsel; then
   paste_backend="xsel -o --clipboard"
+elif is_app_installed win32yank.exe; then
+  paste_backend="win32yank.exe -o"
 elif is_app_installed paste.exe; then
   paste_backend="paste.exe"
 fi
 
 if [ -n "$paste_backend" ]; then
-  if [ "$paste_backend" = "paste.exe" ]; then
+  if [[ "$paste_backend" =~ ("paste.exe"|"win32yank.exe") ]]; then
     clipboard_content=`$paste_backend | tr -d "\r"`
   else
     clipboard_content=`$paste_backend`
