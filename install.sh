@@ -4,7 +4,7 @@ set -e
 set -u
 set -o pipefail
 
-TMUX_VERSION=3.2-rc3
+TMUX_VERSION=3.2-rc4
 
 is_app_installed() {
   type "$1" &>/dev/null
@@ -22,15 +22,12 @@ install_tmux() {
   fi
   cd ~/tmuxNOC/
   sudo apt update
-  sudo apt-get -y install wget libutempter0
-  wget http://ftp.us.debian.org/debian/pool/main/libe/libevent/libevent-2.1-7_2.1.12-stable-1_amd64.deb
-  sudo dpkg -i libevent-2.1-7_2.1.12-stable-1_amd64.deb
-  rm libevent-2.1-7_2.1.12-stable-1_amd64.deb
+  sudo apt-get -y install wget
 
   # Downloading .deb and installing
-  wget http://ftp.us.debian.org/debian/pool/main/t/tmux/tmux_3.2~rc3-1_amd64.deb
-  sudo dpkg -i tmux_3.2~rc3-1_amd64.deb
-  rm tmux_3.2~rc3-1_amd64.deb
+  wget http://ftp.us.debian.org/debian/pool/main/t/tmux/tmux_3.2~rc4-1_amd64.deb
+  sudo apt-get install ./tmux_3.2~rc4-1_amd64.deb
+  rm tmux_3.2~rc4-1_amd64.deb
 }
 
 if ! is_app_installed expect || ! is_app_installed git || ! is_app_installed telnet; then
@@ -52,22 +49,12 @@ system. Then run the script again, it will install needed version of tmux.\n\n"
   read -p "Press Enter to continue..."
 fi
 
-# Install TPM plugins.
-if [ ! -e "$HOME/tmuxNOC/plugins/tpm" ]; then
-  printf "WARNING: Cannot found TPM (Tmux Plugin Manager) \
- at default location: \$HOME/tmuxNOC/plugins/tpm.\n"
-  git clone https://github.com/tmux-plugins/tpm ~/tmuxNOC/plugins/tpm
-fi
-
 if [ -e "$HOME/.tmux.conf" ]; then
-  printf "Found existing .tmux.conf in your \$HOME directory. \
+  printf "\nFound existing .tmux.conf in your \$HOME directory. \
 Will create a backup at $HOME/.tmux.conf.bak\n"
 fi
 
 cp -f "$HOME/.tmux.conf" "$HOME/.tmux.conf.bak" 2>/dev/null || true
 ln -sf "$HOME"/tmuxNOC/tmux.conf "$HOME"/.tmux.conf;
-
-printf "Install TPM plugins\n"
-tmux -c "$HOME"/tmuxNOC/plugins/tpm/bin/install_plugins || true
 
 printf "\nOK: Completed\n"
