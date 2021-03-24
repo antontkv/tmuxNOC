@@ -529,7 +529,7 @@ def connect_ssh(host, split_direction):
     home = lPaths.home
     subprocess.run(
         get_split_command(split_direction) + [
-            f'PROMPT_COMMAND="ssh {host}" bash --rcfile {home}/tmuxNOC/misc/tmux_noc_bashrc'
+            f'PROMPT_COMMAND="ssh -o ServerAliveInterval=300 {host}" bash --rcfile {home}/tmuxNOC/misc/tmux_noc_bashrc'
         ],
         check=True
     )
