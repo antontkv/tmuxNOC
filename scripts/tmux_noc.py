@@ -594,7 +594,7 @@ def tmux_send(string, conformation_symbol='Enter', target_pane=':'):
     )
 
 
-def tmux_wait_for(string, timeout=3):
+def tmux_wait_for(string, timeout=3, to_lower=False):
     """
     Wait for the string to show up in terminal. Returns true if string in the last 2 lines on the
     screen, else false.
@@ -607,6 +607,8 @@ def tmux_wait_for(string, timeout=3):
         ).split('\n')
         screen_content_list_filtered = [line for line in screen_content_list if len(line) != 0]
         for line in screen_content_list_filtered[-2:]:
+            if to_lower:
+                line = line.lower()
             if string in line:
                 found = True
                 break
@@ -638,7 +640,7 @@ def send_login_pwd(login_number):
         tmux_dm(f'Login-password pair {login_number} not found in {lPaths.logins}.')
         return
     tmux_send(login)
-    if tmux_wait_for('assword'):
+    if tmux_wait_for('assword', to_lower=True):
         tmux_send(password)
     else:
         tmux_dm('Password prompt not found.')
