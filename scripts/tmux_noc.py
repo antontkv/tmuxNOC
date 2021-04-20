@@ -319,6 +319,10 @@ def clipboard_menu(split_direction):
             (f'run "{lPaths.script} connect_telnet '
              f'--host \'{clipboard_first_word}\' --split_direction {split_direction}"'),
 
+            f'jtelnet {clipboard_first_word_short}', 'J',
+            (f'run "{lPaths.script} connect_jtelnet '
+             f'--host \'{clipboard_first_word}\' --split_direction {split_direction}"'),
+
             f'ssh {clipboard_first_word_short}', 'V',
             (f'run "{lPaths.script} connect_ssh '
              f'--host \'{clipboard_first_word}\' --split_direction {split_direction}"'),
@@ -471,6 +475,10 @@ def noc_menu(split_direction='new'):
         (f'run "{script_path} setup_connection --connection_type telnet '
          f'--split_direction {split_direction}"'),
 
+        'New Jump Telnet', 'J',
+        (f'run "{script_path} setup_connection --connection_type jtelnet '
+         f'--split_direction {split_direction}"'),
+
         'New SSH', 's',
         (f'run "{script_path} setup_connection --connection_type ssh '
          f'--split_direction {split_direction}"'),
@@ -523,6 +531,30 @@ def connect_telnet(host, split_direction):
         pane_log('t', host, restart=True)
     else:
         pane_log('t', host)
+
+
+def connect_jtelnet(host, split_direction):
+    """
+    Connect to telnet via ssh jump host.
+    """
+    jump_host = read_jump_host()
+    if not jump_host:
+        return
+    home = lPaths.home
+    subprocess.run(
+        get_split_command(split_direction) + [
+            f'PROMPT_COMMAND="ssh {jump_host} -o ServerAliveInterval=300 -t \'/bin/bash -ilc \\"telnet {host}\\"\'" \
+              TERM=vt100-w bash --rcfile {home}/tmuxNOC/misc/tmux_noc_bashrc'
+        ],
+        check=True
+    )
+    tmux_set_pane_name(f'jt/{host}')
+    rename_window()
+    save_session('jtelnet', host)
+    if split_direction == 'reopen':
+        pane_log('jt', host, restart=True)
+    else:
+        pane_log('jt', host)
 
 
 def connect_ssh(host, split_direction):
@@ -618,6 +650,23 @@ def tmux_wait_for(string, timeout=3, to_lower=False):
             time.sleep(0.1)
 
     return found
+
+
+def read_jump_host():
+    jump_host = ''
+    if not os.path.exists(lPaths.logins):
+        tmux_dm(f'File {lPaths.logins} doesn\'t exists.')
+        return
+    with open(lPaths.logins, 'r') as f:
+        logins = f.readlines()
+    for line in logins:
+        if f'JUMP=' in line:
+            jump_host = line.replace(f'JUMP=', '').replace('\n', '')
+    if not jump_host:
+        tmux_dm(f'Jump host not found in {lPaths.logins}.')
+        return None
+    else:
+        return jump_host
 
 
 def send_login_pwd(login_number):
@@ -723,6 +772,7 @@ if __name__ == "__main__":
         'move_pane_window',
         'setup_connection',
         'connect_telnet',
+        'connect_jtelnet',
         'connect_ssh',
         'toggle_log',
         'save_pane_history',
@@ -763,6 +813,8 @@ if __name__ == "__main__":
         setup_connection(args.connection_type, args.split_direction)
     elif args.type == 'connect_telnet':
         connect_telnet(args.host, args.split_direction)
+    elif args.type == 'connect_jtelnet':
+        connect_jtelnet(args.host, args.split_direction)
     elif args.type == 'connect_ssh':
         connect_ssh(args.host, args.split_direction)
     elif args.type == 'toggle_log':
