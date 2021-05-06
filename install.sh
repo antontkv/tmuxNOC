@@ -26,7 +26,7 @@ install_tmux() {
 
   # Downloading .deb and installing
   wget http://ftp.us.debian.org/debian/pool/main/t/tmux/tmux_3.2~rc4-1_amd64.deb
-  sudo apt-get install ./tmux_3.2~rc4-1_amd64.deb
+  sudo apt-get -y install ./tmux_3.2~rc4-1_amd64.deb
   rm tmux_3.2~rc4-1_amd64.deb
 }
 
