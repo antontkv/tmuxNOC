@@ -306,7 +306,7 @@ def clipboard_menu(split_direction):
     Show menu with options to connect to first word in clipboard.
     """
     clipboard_first_line = subprocess.check_output(lPaths.paste, encoding='UTF-8').split('\n')[0]
-    clipboard_first_word = [word for word in clipboard_first_line.split(' ') if len(word) != 0]
+    clipboard_first_word = [word for word in clipboard_first_line.replace('\t', '').split(' ') if len(word) != 0]
     if len(clipboard_first_word) != 0:
         clipboard_first_word = clipboard_first_word[0]
         clipboard_first_word_short = short_word(clipboard_first_word)
