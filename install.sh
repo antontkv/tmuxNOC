@@ -4,7 +4,7 @@ set -e
 set -u
 set -o pipefail
 
-TMUX_VERSION=3.2-rc4
+TMUX_VERSION=3.2a
 
 is_app_installed() {
   type "$1" &>/dev/null
@@ -24,10 +24,10 @@ install_tmux() {
   sudo apt update
   sudo apt-get -y install wget
 
-  # Downloading .deb and installing
-  wget http://ftp.us.debian.org/debian/pool/main/t/tmux/tmux_3.2~rc4-1_amd64.deb
-  sudo apt-get -y install ./tmux_3.2~rc4-1_amd64.deb
-  rm tmux_3.2~rc4-1_amd64.deb
+  # Downloading .appimage and installing it.
+  wget https://github.com/antontkv/tmux-appimage/releases/download/$TMUX_VERSION/tmux-$TMUX_VERSION-x86_64.appimage
+  chmod +x tmux-$TMUX_VERSION-x86_64.appimage
+  sudo mv tmux-$TMUX_VERSION-x86_64.appimage /usr/local/bin/tmux
 }
 
 if ! is_app_installed expect || ! is_app_installed git || ! is_app_installed telnet; then
@@ -38,7 +38,8 @@ read -p "Press Enter to continue..."
 fi
 
 if ! is_app_installed tmux; then
-  printf "\nTmux is not installed. Version $TMUX_VERSION will be downloaded and installed from Debian archives.\n\
+  printf "\nTmux is not installed. Version $TMUX_VERSION will be downloaded and installed from \
+https://github.com/antontkv/tmux-appimage/releases.\n\
 To install you'll need sudo rights.\n\n"
 read -p "Press Enter to continue..."
   install_tmux
