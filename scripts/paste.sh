@@ -12,6 +12,24 @@ is_app_installed() {
   type "$1" &>/dev/null
 }
 
+# Thanks to https://unix.stackexchange.com/a/658742.
+# This function provides a general solution to the problem of preserving
+# trailing newlines in a command substitution.
+#
+#    cmdsub <command goes here>
+#
+# If the command succeeded, the result will be found in variable CMDSUB_RESULT.
+cmdsub() {
+  local -r BYTE=$'\x78'
+  local result
+  if result=$("$@"; ret=$?; echo "$BYTE"; exit "$ret"); then
+    local LC_ALL=C
+    CMDSUB_RESULT=${result%$BYTE}
+  else
+    return "$?"
+  fi
+}
+
 paste_backend=""
 if [ -n "${DISPLAY-}" ] && is_app_installed xsel; then
   paste_backend="xsel -o --clipboard"
@@ -23,10 +41,12 @@ fi
 
 if [ -n "$paste_backend" ]; then
   if [[ "$paste_backend" =~ ("paste.exe"|"win32yank.exe") ]]; then
-    clipboard_content=`$paste_backend | tr -d "\r"`
+    cmd() { $paste_backend | tr -d "\r"; }
   else
-    clipboard_content=`$paste_backend`
+    cmd() { $paste_backend; }
   fi
+  cmdsub cmd
+  clipboard_content=$CMDSUB_RESULT
 
   if [ "$1" = "tmux" ]; then
     printf "%s" "$clipboard_content" | tmux load-buffer -
