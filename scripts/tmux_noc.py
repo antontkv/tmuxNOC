@@ -9,7 +9,6 @@ import os
 from errno import EEXIST
 import sys
 
-
 class ANSIColors:
     """
     Colors for terminal.
@@ -556,15 +555,51 @@ def connect_jtelnet(host, split_direction):
     else:
         pane_log('jt', host)
 
+def yes_no(question: str) -> bool:
+    """Prompt the yes/no-*question* to the user."""
+    while True:
+        user_input = input(question + " [Y/n]: ")
+        if user_input == "":
+            return True
+        if "yes".startswith(user_input.lower()):
+            return True
+        elif "no".startswith(user_input.lower()):
+            return False
+        else:
+            print("It's yes or no question.\n")
 
-def connect_ssh(host, split_direction):
+def prompt_for_ssh_login(host):
+    use_kbdfix = yes_no("Use kbdfix.sh and VT100 terminal?")
+    username = input("Username: ")
+    connect_ssh(host, "reopen", use_kbdfix, username)
+
+def connect_ssh(host, split_direction, use_kbdfix=None, username=None):
     home = lPaths.home
-    subprocess.run(
-        get_split_command(split_direction) + [
-            f'PROMPT_COMMAND="ssh -o ServerAliveInterval=300 {host}" bash --rcfile {home}/tmuxNOC/misc/tmux_noc_bashrc'
-        ],
-        check=True
-    )
+    script = lPaths.script
+
+    config_hosts = ssh_config_hosts()
+    if host in config_hosts or "@" in host:
+        prompt_for_login = False
+    else:
+        prompt_for_login = True
+
+    if prompt_for_login and use_kbdfix is None:
+        subprocess.run(get_split_command(split_direction) + [
+            f'bash -c "{script} prompt_for_ssh_login --host {host}"'
+        ], check=True)
+    elif use_kbdfix is not None:
+        if use_kbdfix:
+            command = f'PROMPT_COMMAND="{home}/tmuxNOC/scripts/kbdfix.sh ssh -o ServerAliveInterval=300 \
+                        -o StrictHostKeyChecking=no -l {username} {host}" TERM=vt100-w bash --rcfile \
+                        {home}/tmuxNOC/misc/tmux_noc_bashrc'
+        else:
+            command = f'PROMPT_COMMAND="ssh -o ServerAliveInterval=300 -o StrictHostKeyChecking=no \
+                        -l {username} {host}" TERM=vt100-w bash --rcfile {home}/tmuxNOC/misc/tmux_noc_bashrc'
+        subprocess.run(get_split_command(split_direction) + [command], check=True)
+    else:
+        command = f'PROMPT_COMMAND="ssh -o ServerAliveInterval=300 -o StrictHostKeyChecking=no {host}" \
+                    bash --rcfile {home}/tmuxNOC/misc/tmux_noc_bashrc'
+        subprocess.run(get_split_command(split_direction) + [command], check=True)
     tmux_set_pane_name(f's/{host}')
     rename_window()
     save_session('ssh', host)
@@ -780,6 +815,7 @@ if __name__ == "__main__":
         'open_log',
         'rename_window',
         'rename_windows',
+        'prompt_for_ssh_login',
     ])
     parser.add_argument('--login_number', nargs='?')
     parser.add_argument('--host', nargs='?')
@@ -829,3 +865,5 @@ if __name__ == "__main__":
         rename_window(args.window_id)
     elif args.type == 'rename_windows':
         rename_windows()
+    elif args.type == 'prompt_for_ssh_login':
+        prompt_for_ssh_login(args.host)
