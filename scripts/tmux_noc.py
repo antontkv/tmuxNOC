@@ -594,7 +594,7 @@ def connect_ssh(host, split_direction, use_kbdfix=None, username=None):
                         {home}/tmuxNOC/misc/tmux_noc_bashrc'
         else:
             command = f'PROMPT_COMMAND="ssh -o ServerAliveInterval=300 -o StrictHostKeyChecking=no \
-                        -l {username} {host}" TERM=vt100-w bash --rcfile {home}/tmuxNOC/misc/tmux_noc_bashrc'
+                        -l {username} {host}" bash --rcfile {home}/tmuxNOC/misc/tmux_noc_bashrc'
         subprocess.run(get_split_command(split_direction) + [command], check=True)
     else:
         command = f'PROMPT_COMMAND="ssh -o ServerAliveInterval=300 -o StrictHostKeyChecking=no {host}" \
