@@ -667,7 +667,7 @@ def tmux_wait_for(string, timeout=3, to_lower=False):
     screen, else false.
     """
     found = False
-    for _ in range(timeout*10):
+    for _ in range(int(timeout*10)):
         screen_content_list = subprocess.check_output(
             ['tmux', 'capture-pane', '-J', '-p'],
             encoding='UTF-8'
@@ -722,6 +722,10 @@ def send_login_pwd(login_number):
             password = line.replace(f'PASS{login_number}=', '').replace('\n', '')
     if not login or not password:
         tmux_dm(f'Login-password pair {login_number} not found in {lPaths.logins}.')
+        return
+    if tmux_wait_for('assword', timeout=0.1, to_lower=True):
+        # If password prompt available right away, send password only.
+        tmux_send(password)
         return
     tmux_send(login)
     if tmux_wait_for('assword', to_lower=True):
