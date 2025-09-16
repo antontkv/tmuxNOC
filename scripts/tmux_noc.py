@@ -714,29 +714,21 @@ def tmux_send(string, conformation_symbol="Enter", target_pane=":"):
     subprocess.run(["tmux", "send-keys", "-t", target_pane, string, f"{conformation_symbol}"], check=True)
 
 
-def tmux_wait_for(string, timeout=3, to_lower=False):
+def tmux_wait_for(string: str, timeout:int=3, to_lower:bool=False) -> bool:
     """
     Wait for the string to show up in terminal. Returns true if string in the last 2 lines on the
     screen, else false.
     """
-    found = False
-    for _ in range(int(timeout * 10)):
-        screen_content_list = subprocess.check_output(["tmux", "capture-pane", "-J", "-p"], encoding="UTF-8").split(
-            "\n"
-        )
-        screen_content_list_filtered = [line for line in screen_content_list if len(line) != 0]
-        for line in screen_content_list_filtered[-2:]:
+    for _ in range(timeout * 10):
+        screen_content = [line for line in subprocess.check_output(["tmux", "capture-pane", "-J", "-p"]).splitlines() if len(line) != 0]
+        for line in screen_content[-2:]:
             if to_lower:
                 line = line.lower()
             if string in line:
-                found = True
-                break
-        if found:
-            break
-        else:
-            time.sleep(0.1)
+                return True
+        time.sleep(0.1)
 
-    return found
+    return False
 
 
 def read_jump_host():
@@ -756,22 +748,22 @@ def read_jump_host():
         return jump_host
 
 
-def send_login_pwd(login_number):
+def send_login_pwd(login_number: int) -> None:
     """
     Send login/password sequence.
     """
     login, password = "", ""
 
-    if not os.path.exists(lPaths.logins):
+    if not lPaths.logins.exists():
         tmux_dm(f"File {lPaths.logins} doesn't exists.")
         return
     with open(lPaths.logins, "r") as f:
-        logins = f.readlines()
+        logins = f.read().splitlines()
     for line in logins:
-        if f"LOGIN{login_number}" in line:
-            login = line.replace(f"LOGIN{login_number}=", "").replace("\n", "")
-        if f"PASS{login_number}" in line:
-            password = line.replace(f"PASS{login_number}=", "").replace("\n", "")
+        if line.startswith(f"LOGIN{login_number}"):
+            login = line.replace(f"LOGIN{login_number}=", "")
+        if line.startswith(f"PASS{login_number}"):
+            password = line.replace(f"PASS{login_number}=", "")
     if not login or not password:
         tmux_dm(f"Login-password pair {login_number} not found in {lPaths.logins}.")
         return
@@ -874,7 +866,7 @@ if __name__ == "__main__":
             "prompt_for_ssh_login",
         ],
     )
-    parser.add_argument("--login_number", nargs="?")
+    parser.add_argument("--login_number", type=int, nargs="?")
     parser.add_argument("--host", nargs="?")
     parser.add_argument("--connection_type", nargs="?")
     parser.add_argument("--pane_id", nargs="?")
