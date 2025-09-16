@@ -30,14 +30,18 @@ class lPaths:
     Local paths. Needed for tmuxNOC script.
     """
 
-    home = str(Path.home())
-    tmuxNOC = f"{home}/tmuxNOC"
-    script = f"{tmuxNOC}/scripts/tmux_noc.py"
-    paste = f"{tmuxNOC}/scripts/paste.sh"
-    log_dir = f"{tmuxNOC}/local/log"
-    sessions_metadata = f"{tmuxNOC}/local/sessions.json"
-    sessions_history = f"{tmuxNOC}/local/sessions_history.log"
-    logins = f"{tmuxNOC}/local/.logins"
+    home = Path.home()
+    tmuxNOC = home / "tmuxNOC"
+    # Scripts
+    scripts_dir = tmuxNOC / "scripts"
+    script = scripts_dir / "tmux_noc.py"
+    paste = scripts_dir / "paste.sh"
+    # Local
+    local_dir = tmuxNOC / "local"
+    log_dir = local_dir / "log"
+    sessions_metadata = local_dir / "sessions.json"
+    sessions_history = local_dir / "sessions_history.log"
+    logins = local_dir / ".logins"
 
 
 def create_dir(filename):
