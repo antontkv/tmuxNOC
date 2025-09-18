@@ -3,28 +3,30 @@ import argparse
 import datetime
 import json
 import os
+import re
 import subprocess
 import sys
 import time
 from errno import EEXIST
 from pathlib import Path
+from typing import Callable, NamedTuple
 
 
-class ANSIColors:
-    """Colors for terminal."""
+class AC:
+    """ANSI Colors."""
 
-    HEADER = "\033[95m"
-    OKBLUE = "\033[94m"
-    OKGREEN = "\033[92m"
-    WARNING = "\033[93m"
-    FAIL = "\033[91m"
-    ENDC = "\033[0m"
+    PURPLE = "\033[95m"
+    BLUE = "\033[94m"
+    GREEN = "\033[92m"
+    YELLOW = "\033[93m"
+    RED = "\033[91m"
+    END = "\033[0m"
     BOLD = "\033[1m"
     UNDERLINE = "\033[4m"
 
 
-class lPaths:  # noqa:N801
-    """Local paths. Needed for tmuxNOC script."""
+class LP:
+    """Local Paths."""
 
     home = Path.home()
     tmux_noc = home / "tmuxNOC"
@@ -85,7 +87,7 @@ def pane_log(connection_type, host, restart=False):
     day = datetime.datetime.now().strftime("%d")
     current_time = datetime.datetime.now().strftime("%H_%M_%S")
     log_filename = (
-        f"{lPaths.log_dir}/{year}/{month}/{day}/{current_time}---!{last_session_index}_{connection_type}_{host}.log"
+        f"{LP.log_dir}/{year}/{month}/{day}/{current_time}---!{last_session_index}_{connection_type}_{host}.log"
     )
     create_dir(log_filename)
 
@@ -94,7 +96,7 @@ def pane_log(connection_type, host, restart=False):
             "tmux",
             "pipe-pane",
             "-o",
-            f'{lPaths.script} save_pane_history --file_name "{log_filename}" --pane_id #{{pane_id}} -i -',
+            f'{LP.script} save_pane_history --file_name "{log_filename}" --pane_id #{{pane_id}} -i -',
         ],
         check=True,
     )
@@ -104,7 +106,7 @@ def pane_log(connection_type, host, restart=False):
                 "tmux",
                 "pipe-pane",
                 "-o",
-                f'{lPaths.script} save_pane_history --file_name "{log_filename}" --pane_id #{{pane_id}} -i -',
+                f'{LP.script} save_pane_history --file_name "{log_filename}" --pane_id #{{pane_id}} -i -',
             ],
             check=True,
         )
@@ -113,17 +115,17 @@ def pane_log(connection_type, host, restart=False):
 def search_logs():
     """Grep in log directory."""
     rename_window()
-    query = input(f"{ANSIColors.WARNING}grep in logs:{ANSIColors.ENDC} ")
+    query = input(f"{AC.YELLOW}grep in logs:{AC.END} ")
     if not query.isspace() and query != "":
         subprocess.run(
-            ["grep", "--color=always", "-n", "-r", query, "."], cwd=f"{lPaths.home}/tmuxNOC/local/log/", check=True
+            ["grep", "--color=always", "-n", "-r", query, "."], cwd=f"{LP.home}/tmuxNOC/local/log/", check=True
         )
     else:
-        print(f"{ANSIColors.FAIL}Empty query.{ANSIColors.ENDC}")
+        print(f"{AC.RED}Empty query.{AC.END}")
     search_logs()
 
 
-def tmux_dm(message):
+def tmux_dm(message: str) -> None:
     """Display message in status line."""
     subprocess.run(["tmux", "display-message", message], check=True)
 
@@ -136,21 +138,21 @@ def tmux_set_pane_name(name):
 def open_log(history_index, split_direction):
     """Open log file in less."""
     log_file = None
-    for path in Path(lPaths.log_dir).rglob(f"*!{history_index}*"):
+    for path in Path(LP.log_dir).rglob(f"*!{history_index}*"):
         log_file = str(path)
     if log_file is None:
         tmux_dm(f"Log file with index {history_index} not found.")
     else:
-        log_file_short = log_file.replace(lPaths.log_dir + "/", "")
+        log_file_short = log_file.replace(LP.log_dir + "/", "")
         subprocess.run([*get_split_command(split_direction), f'less -m "{log_file}"'], check=True)
         tmux_set_pane_name(f"Log:{log_file_short}")
         rename_window()
 
 
 def load_sessions_metadata():
-    if not os.path.exists(lPaths.sessions_metadata):
+    if not os.path.exists(LP.sessions_metadata):
         return {}
-    with open(lPaths.sessions_metadata, "r") as f:
+    with open(LP.sessions_metadata, "r") as f:
         return json.load(f)
 
 
@@ -184,14 +186,14 @@ def save_session(connection_type, host):
         last_five_sessions = [{"connection_type": connection_type, "host": host}]
     sessions_metadata["last_five_sessions"] = last_five_sessions
     sessions_metadata[f"last_{connection_type}_session"] = host
-    with open(lPaths.sessions_metadata, "w") as f:
+    with open(LP.sessions_metadata, "w") as f:
         json.dump(sessions_metadata, f)
 
-    if not os.path.exists(lPaths.sessions_history):
-        create_dir(lPaths.sessions_history)
-        with open(lPaths.sessions_history, "w"):
+    if not os.path.exists(LP.sessions_history):
+        create_dir(LP.sessions_history)
+        with open(LP.sessions_history, "w"):
             pass
-    with open(lPaths.sessions_history, "r+") as sessions_history_file:
+    with open(LP.sessions_history, "r+") as sessions_history_file:
         sessions_history = sessions_history_file.read()
         current_date = datetime.datetime.now().strftime("%d.%m.%Y")
         current_time = datetime.datetime.now().strftime("%H:%M:%S")
@@ -204,10 +206,10 @@ def save_session(connection_type, host):
 
 def ssh_config_hosts():
     """Get .ssh/config hosts. Return list of hostnames."""
-    if not os.path.exists(f"{lPaths.home}/.ssh/config"):
+    if not os.path.exists(f"{LP.home}/.ssh/config"):
         return None
 
-    with open(f"{lPaths.home}/.ssh/config") as f:
+    with open(f"{LP.home}/.ssh/config") as f:
         ssh_config = f.read().splitlines()
     return [line.replace("Host ", "") for line in ssh_config if line.startswith("Host")]
 
@@ -256,14 +258,14 @@ def ssh_menu(split_direction):
             command += [
                 short_word(host),
                 str(index),
-                (f"run \"{lPaths.script} connect_ssh --host '{host}' --split_direction {split_direction}\""),
+                (f"run \"{LP.script} connect_ssh --host '{host}' --split_direction {split_direction}\""),
             ]
     subprocess.run(command, check=True)
 
 
 def clipboard_menu(split_direction):
     """Show menu with options to connect to first word in clipboard."""
-    clipboard_first_line = subprocess.check_output(lPaths.paste, encoding="UTF-8").split("\n")[0]
+    clipboard_first_line = subprocess.check_output(LP.paste, encoding="UTF-8").split("\n")[0]
     clipboard_first_word = [word for word in clipboard_first_line.replace("\t", "").split(" ") if len(word) != 0]
     if len(clipboard_first_word) != 0:
         clipboard_first_word = clipboard_first_word[0]
@@ -281,19 +283,19 @@ def clipboard_menu(split_direction):
                 f"telnet {clipboard_first_word_short}",
                 "v",
                 (
-                    f'run "{lPaths.script} connect_telnet '
+                    f'run "{LP.script} connect_telnet '
                     f"--host '{clipboard_first_word}' --split_direction {split_direction}\""
                 ),
                 f"jtelnet {clipboard_first_word_short}",
                 "J",
                 (
-                    f'run "{lPaths.script} connect_jtelnet '
+                    f'run "{LP.script} connect_jtelnet '
                     f"--host '{clipboard_first_word}' --split_direction {split_direction}\""
                 ),
                 f"ssh {clipboard_first_word_short}",
                 "V",
                 (
-                    f'run "{lPaths.script} connect_ssh '
+                    f'run "{LP.script} connect_ssh '
                     f"--host '{clipboard_first_word}' --split_direction {split_direction}\""
                 ),
             ],
@@ -324,7 +326,7 @@ def move_pane_window(split_direction):
             windows_menu.append(index)
         else:
             windows_menu.append("")
-        windows_menu.append(f'join-pane {split_argument} -t {_id}; run "{lPaths.script} rename_windows"')
+        windows_menu.append(f'join-pane {split_argument} -t {_id}; run "{LP.script} rename_windows"')
 
     subprocess.run(
         [
@@ -344,7 +346,7 @@ def move_pane_window(split_direction):
 
 def noc_menu(split_direction="new"):
     """Show main tmuxNOC menu."""
-    script_path = lPaths.script
+    script_path = LP.script
 
     sessions_metadata = load_sessions_metadata()
     if "last_five_sessions" in sessions_metadata:
@@ -506,13 +508,13 @@ def setup_connection(connection_type, split_direction):
         f"{connection_type}:",
         "-I",
         hostname,
-        (f"run \"{lPaths.script} connect_{connection_type} --host '%1' --split_direction {split_direction}\""),
+        (f"run \"{LP.script} connect_{connection_type} --host '%1' --split_direction {split_direction}\""),
     ]
     subprocess.run(command, check=True)
 
 
 def connect_telnet(host, split_direction):
-    home = lPaths.home
+    home = LP.home
     subprocess.run(
         [
             *get_split_command(split_direction),
@@ -535,7 +537,7 @@ def connect_jtelnet(host, split_direction):
     jump_host = read_jump_host()
     if not jump_host:
         return
-    home = lPaths.home
+    home = LP.home
     subprocess.run(
         [
             *get_split_command(split_direction),
@@ -573,8 +575,8 @@ def prompt_for_ssh_login(host):
 
 
 def connect_ssh(host, split_direction, use_kbdfix=None, username=None):
-    home = lPaths.home
-    script = lPaths.script
+    home = LP.home
+    script = LP.script
 
     prompt_for_login = not (host in ssh_config_hosts() or "@" in host)
 
@@ -640,20 +642,20 @@ def rename_windows():
         rename_window(window_id)
 
 
-def tmux_send(string, conformation_symbol="Enter", target_pane=":"):
+def tmux_send(string: str, conformation_symbol: str = "Enter", target_pane: str = ":") -> None:
     """Send string to the pane."""
     subprocess.run(["tmux", "send-keys", "-t", target_pane, string, f"{conformation_symbol}"], check=True)
 
 
-def tmux_wait_for(string: str, timeout: int = 3, to_lower: bool = False) -> bool:
+def tmux_wait_for(string: str, timeout: float = 3.0, to_lower: bool = False) -> bool:
     """Wait for the string to show up in terminal.
 
     Returns true if string in the last 2 lines on the screen, else false.
     """
-    for _ in range(timeout * 10):
+    for _ in range(int(timeout * 10)):  # Number of 0.1 ticks. 0.1 -> 1, 3.5 -> 35
         screen_content = [
             line
-            for line in subprocess.check_output(["tmux", "capture-pane", "-J", "-p"]).splitlines()
+            for line in subprocess.check_output(["tmux", "capture-pane", "-J", "-p"], encoding="utf-8").splitlines()
             if len(line) != 0
         ]
         for line in screen_content[-2:]:
@@ -668,16 +670,16 @@ def tmux_wait_for(string: str, timeout: int = 3, to_lower: bool = False) -> bool
 
 def read_jump_host():
     jump_host = ""
-    if not os.path.exists(lPaths.logins):
-        tmux_dm(f"File {lPaths.logins} doesn't exists.")
+    if not os.path.exists(LP.logins):
+        tmux_dm(f"File {LP.logins} doesn't exists.")
         return None
-    with open(lPaths.logins, "r") as f:
+    with open(LP.logins, "r") as f:
         logins = f.readlines()
     for line in logins:
         if "JUMP=" in line:
             jump_host = line.replace("JUMP=", "").replace("\n", "")
     if not jump_host:
-        tmux_dm(f"Jump host not found in {lPaths.logins}.")
+        tmux_dm(f"Jump host not found in {LP.logins}.")
         return None
     return jump_host
 
@@ -686,18 +688,18 @@ def send_login_pwd(login_number: int) -> None:
     """Send login/password sequence."""
     login, password = "", ""
 
-    if not lPaths.logins.exists():
-        tmux_dm(f"File {lPaths.logins} doesn't exists.")
+    if not LP.logins.exists():
+        tmux_dm(f"File {LP.logins} doesn't exists.")
         return
-    with open(lPaths.logins, "r") as f:
+    with open(LP.logins, "r") as f:
         logins = f.read().splitlines()
     for line in logins:
         if line.startswith(f"LOGIN{login_number}"):
             login = line.replace(f"LOGIN{login_number}=", "")
-        if line.startswith(f"PASS{login_number}"):
-            password = line.replace(f"PASS{login_number}=", "")
+        if line.startswith(f"PASS{login_number}") or line.startswith(f"PASSWORD{login_number}"):
+            password = line.replace(f"PASS{login_number}=", "").replace(f"PASSWORD{login_number}=", "")
     if not login or not password:
-        tmux_dm(f"Login-password pair {login_number} not found in {lPaths.logins}.")
+        tmux_dm(f"Login-password pair {login_number} not found in {LP.logins}.")
         return
     if tmux_wait_for("assword", timeout=0.1, to_lower=True):
         # If password prompt available right away, send password only.
@@ -714,7 +716,7 @@ def send_with_delay(pane_id):
     """Send multiple lines to the pane with delay."""
     tmux_set_pane_name("Send with delay")
     rename_window()
-    print(f"{ANSIColors.WARNING}What to send? To end list enter a single dot{ANSIColors.ENDC}\n.")
+    print(f"{AC.YELLOW}What to send? To end list enter a single dot{AC.END}\n.")
     commands, s = [], ""
     while s != ".":
         s = input()
@@ -722,26 +724,24 @@ def send_with_delay(pane_id):
             commands.append(s)
     while True:
         try:
-            line_delay = input(f"{ANSIColors.WARNING}Enter LINE delay in milliseconds [500]: {ANSIColors.ENDC}") or 500
+            line_delay = input(f"{AC.YELLOW}Enter LINE delay in milliseconds [500]: {AC.END}") or 500
             line_delay = int(line_delay)
         except ValueError:
-            print(f"{ANSIColors.FAIL}Enter an integer.{ANSIColors.ENDC}")
+            print(f"{AC.RED}Enter an integer.{AC.END}")
             continue
         if line_delay < 0:
-            print(f"{ANSIColors.FAIL}Enter a positive integer or 0.{ANSIColors.ENDC}")
+            print(f"{AC.RED}Enter a positive integer or 0.{AC.END}")
             continue
         break
     while True:
         try:
-            character_delay = (
-                input(f"{ANSIColors.WARNING}Enter CHARACTER delay in milliseconds [0]: {ANSIColors.ENDC}") or 0
-            )
+            character_delay = input(f"{AC.YELLOW}Enter CHARACTER delay in milliseconds [0]: {AC.END}") or 0
             character_delay = int(character_delay)
         except ValueError:
-            print(f"{ANSIColors.FAIL}Enter an integer.{ANSIColors.ENDC}")
+            print(f"{AC.RED}Enter an integer.{AC.END}")
             continue
         if character_delay < 0:
-            print(f"{ANSIColors.FAIL}Enter a positive integer or 0.{ANSIColors.ENDC}")
+            print(f"{AC.RED}Enter a positive integer or 0.{AC.END}")
             continue
         break
 
@@ -753,7 +753,7 @@ def send_with_delay(pane_id):
         if len(commands) > rows and index > 5:
             rows_offset = index - 5
         print("\n".join(commands[rows_offset:index]))
-        print(f"{ANSIColors.OKGREEN}{ANSIColors.BOLD}{command}{ANSIColors.ENDC}")
+        print(f"{AC.GREEN}{AC.BOLD}{command}{AC.END}")
         print("\n".join(commands[index + 1 : rows + rows_offset]))
 
         if character_delay > 0:
@@ -768,8 +768,79 @@ def send_with_delay(pane_id):
             time.sleep(line_delay / 1000)
 
 
+class InteractiveTest:
+    def __init__(self) -> None:
+        self.keys_re = re.compile(r"`(.*?)`")
+
+        print(f"{AC.BOLD}Welcome to the interactive test of tmuxNOC.{AC.END}")
+        print(f"{AC.BOLD}It's meant to test it's functions and also show it's capabilities.{AC.END}")
+        print("")
+
+        if yes_no(f"{AC.YELLOW}Test login?{AC.END}"):
+            self.test_login()
+
+    def instruction(self, instruction: str) -> None:
+        highlight_keys = self.keys_re.sub(rf"{AC.BOLD}{AC.UNDERLINE}\1{AC.END}{AC.PURPLE}", instruction)
+        print(f"{AC.PURPLE}{highlight_keys}{AC.END}")
+
+    def success(self) -> None:
+        print(f"{AC.GREEN}SUCCESS{AC.END}")
+
+    def fail(self, message: str, exit_call: Callable[[], None] | None = None) -> None:
+        yn = yes_no(f"{AC.RED}FAIL: {message}. Continue other tests(y) or exit(n)?{AC.END}")
+        if exit_call is not None:
+            exit_call()
+        if not yn:
+            exit(1)
+
+    ### TESTS
+    def test_login(self) -> None:
+        def cleanup() -> None:
+            print("Deleting dummy logins.")
+            LP.logins.unlink(missing_ok=True)
+            if bk_logins.exists():
+                print(f"Restoring {bk_logins} to {LP.logins}.")
+                bk_logins.rename(LP.logins)
+
+        class DummyLogin(NamedTuple):
+            i: int
+            login: str
+            pwd: str
+
+            def __str__(self) -> str:
+                return f"LOGIN{self.i}={self.login}\nPASSWORD{self.i}={self.pwd}\n"
+
+        print("Setting up login testing environment.")
+        bk_logins = LP.local_dir / ".logins.bk"
+        if LP.logins.exists():
+            print(f"Moving {LP.logins} to {bk_logins}.")
+            LP.logins.rename(bk_logins)
+
+        dummy_logins = (DummyLogin(1, "admin", "password"), DummyLogin(2, "root", "1234"))
+        print(f"Writing dummy logins to {LP.logins}.")
+        LP.logins.write_text("".join(str(dummy_login) for dummy_login in dummy_logins))
+
+        for dummy_login in dummy_logins:
+            self.instruction(f"Testing LOGIN{dummy_login.i}. Press `Alt-{dummy_login.i}` to enter login/pwd pair.")
+            if input("login: ") != dummy_login.login:
+                self.fail(f"Login entered is not '{dummy_login.login}'", cleanup)
+                return
+            if input("password: ") != dummy_login.pwd:
+                self.fail(f"Password entered is not '{dummy_login.pwd}'", cleanup)
+                return
+
+        dummy_login = dummy_logins[0]
+        self.instruction("Testing bypassing login input if password field available at cursor. Press `Alt-1`.")
+        if input("password: ") != dummy_login.pwd:
+            self.fail(f"Password entered is not '{dummy_login.pwd}'", cleanup)
+            return
+
+        cleanup()
+        self.success()
+
+
 if __name__ == "__main__":
-    create_dir(f"{lPaths.tmux_noc}/local/")
+    LP.local_dir.mkdir(parents=True, exist_ok=True)
     parser = argparse.ArgumentParser(description="Connect to telnet or ssh from tmux.")
     parser.add_argument(
         "type",
@@ -791,6 +862,7 @@ if __name__ == "__main__":
             "rename_window",
             "rename_windows",
             "prompt_for_ssh_login",
+            "interactive_test",
         ],
     )
     parser.add_argument("--login_number", type=int, nargs="?")
@@ -840,3 +912,5 @@ if __name__ == "__main__":
         rename_windows()
     elif args.type == "prompt_for_ssh_login":
         prompt_for_ssh_login(args.host)
+    elif args.type == "interactive_test":
+        InteractiveTest()
