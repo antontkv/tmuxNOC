@@ -460,13 +460,6 @@ def noc_menu(split_direction="new"):
         f'{split_command} "{script_path} search_logs"; set -p @pane_name "grep in logs"',
         # -----
     ]
-    if split_direction == "new":
-        command += [
-            "",
-            "Send Commands with Delay",
-            "d",
-            (f"split-window -h \"{script_path} send_with_delay --pane_id $(tmux display -pt - '#{{pane_id}}')\""),
-        ]
     command += [
         # -----
         "",
@@ -712,62 +705,6 @@ def send_login_pwd(login_number: int) -> None:
         tmux_dm("Password prompt not found.")
 
 
-def send_with_delay(pane_id):
-    """Send multiple lines to the pane with delay."""
-    tmux_set_pane_name("Send with delay")
-    rename_window()
-    print(f"{AC.YELLOW}What to send? To end list enter a single dot{AC.END}\n.")
-    commands, s = [], ""
-    while s != ".":
-        s = input()
-        if s != ".":
-            commands.append(s)
-    while True:
-        try:
-            line_delay = input(f"{AC.YELLOW}Enter LINE delay in milliseconds [500]: {AC.END}") or 500
-            line_delay = int(line_delay)
-        except ValueError:
-            print(f"{AC.RED}Enter an integer.{AC.END}")
-            continue
-        if line_delay < 0:
-            print(f"{AC.RED}Enter a positive integer or 0.{AC.END}")
-            continue
-        break
-    while True:
-        try:
-            character_delay = input(f"{AC.YELLOW}Enter CHARACTER delay in milliseconds [0]: {AC.END}") or 0
-            character_delay = int(character_delay)
-        except ValueError:
-            print(f"{AC.RED}Enter an integer.{AC.END}")
-            continue
-        if character_delay < 0:
-            print(f"{AC.RED}Enter a positive integer or 0.{AC.END}")
-            continue
-        break
-
-    rows = subprocess.check_output(["stty", "size"]).decode().split()[0]
-    rows = int(rows) - 2
-    rows_offset = 0
-    for index, command in enumerate(commands):
-        subprocess.call("clear", shell=True)
-        if len(commands) > rows and index > 5:
-            rows_offset = index - 5
-        print("\n".join(commands[rows_offset:index]))
-        print(f"{AC.GREEN}{AC.BOLD}{command}{AC.END}")
-        print("\n".join(commands[index + 1 : rows + rows_offset]))
-
-        if character_delay > 0:
-            characters = list(command)
-            for character in characters:
-                tmux_send(character, "", pane_id)
-                time.sleep(character_delay / 1000)
-            tmux_send("", "Enter", pane_id)
-        else:
-            tmux_send(command, target_pane=pane_id)
-        if index + 1 != len(commands):
-            time.sleep(line_delay / 1000)
-
-
 class InteractiveTest:
     def __init__(self) -> None:
         self.keys_re = re.compile(r"`(.*?)`")
@@ -846,7 +783,6 @@ if __name__ == "__main__":
         "type",
         choices=[
             "login",
-            "send_with_delay",
             "noc_menu",
             "ssh_menu",
             "clipboard_menu",
@@ -880,8 +816,6 @@ if __name__ == "__main__":
 
     if args.type == "login":
         send_login_pwd(args.login_number)
-    elif args.type == "send_with_delay":
-        send_with_delay(args.pane_id)
     elif args.type == "noc_menu":
         noc_menu(args.split_direction)
     elif args.type == "ssh_menu":
