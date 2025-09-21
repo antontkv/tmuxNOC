@@ -9,7 +9,7 @@ import sys
 import time
 from errno import EEXIST
 from pathlib import Path
-from typing import Callable, NamedTuple
+from typing import Any, Callable, NamedTuple
 
 
 class AC:
@@ -40,6 +40,28 @@ class LP:
     sessions_metadata = local_dir / "sessions.json"
     sessions_history = local_dir / "sessions_history.log"
     logins = local_dir / ".logins"
+
+
+class MenuEntry(NamedTuple):
+    """Tmux Menu Entry."""
+
+    text: str
+    key: str
+    cmd: str
+
+
+def menu_text(message: str, styles: str = "") -> MenuEntry:
+    tmux_styles = "".join(f"#[{style.strip()}]" for style in styles.split(","))
+
+    return MenuEntry(f"-#[nodim]{tmux_styles}{message}", "", "")
+
+
+def menu_subheader(text: str) -> MenuEntry:
+    return menu_text(text, styles="align=centre,bold,nodim")
+
+
+MENU_DELIMITER = ("",)
+MENU_EMPTY_LINE = menu_text("")
 
 
 def create_dir(filename):
@@ -149,7 +171,7 @@ def open_log(history_index, split_direction):
         rename_window()
 
 
-def load_sessions_metadata():
+def load_sessions_metadata() -> dict[str, Any]:
     if not os.path.exists(LP.sessions_metadata):
         return {}
     with open(LP.sessions_metadata, "r") as f:
@@ -204,7 +226,7 @@ def save_session(connection_type, host):
         )
 
 
-def ssh_config_hosts():
+def ssh_config_hosts() -> list[str] | None:
     """Get .ssh/config hosts. Return list of hostnames."""
     if not os.path.exists(f"{LP.home}/.ssh/config"):
         return None
@@ -214,7 +236,7 @@ def ssh_config_hosts():
     return [line.replace("Host ", "") for line in ssh_config if line.startswith("Host")]
 
 
-def short_word(word):
+def short_word(word: str) -> str:
     """This is for tmux menus.
 
     Tmux menu will not show, if it's content is to big for terminal window.
@@ -344,147 +366,150 @@ def move_pane_window(split_direction):
     )
 
 
-def noc_menu(split_direction="new"):
+# def tmux_menu():
+#     move_submenu = [
+#         *MenuEntry(
+#             "Move Pane to Other Window (Vertical)",
+#             "m",
+#             f'run "{LP.script} move_pane_window --split_direction vertical"',
+#         ),
+#         *MenuEntry(
+#             "Move Pane to Other Window (Horizontal)",
+#             "M",
+#             f'run "{LP.script} move_pane_window --split_direction horizontal"',
+#         ),
+#     ]
+
+
+def noc_menu(split_direction: str = "new") -> None:
     """Show main tmuxNOC menu."""
-    script_path = LP.script
+    split_hor_entry = MenuEntry("Horizontal Pane", "\\", f'run "{LP.script} noc_menu --split_direction horizontal"')
+    split_vert_entry = MenuEntry("Vertical Pane", "-", f'run "{LP.script} noc_menu --split_direction vertical"')
+    reopen_entry = MenuEntry("Current Pane", "r", f'run "{LP.script} noc_menu --split_direction reopen"')
+    new_window_entry = MenuEntry("New Window", "n", f'run "{LP.script} noc_menu --split_direction new"')
 
-    sessions_metadata = load_sessions_metadata()
-    if "last_five_sessions" in sessions_metadata:
-        last_five_sessions = sessions_metadata["last_five_sessions"]
-        last_sessions_menu_block = [""]
-        for index, session in enumerate(last_five_sessions):
-            connection_type = session["connection_type"]
-            host = session["host"]
-            host_short = short_word(host)
-            last_sessions_menu_block.append(f"{connection_type} {host_short}")
-            last_sessions_menu_block.append(f"{index + 1}")
-            last_sessions_menu_block.append(
-                (f"run \"{script_path} connect_{connection_type} --host '{host}' --split_direction {split_direction}\"")
-            )
-    else:
-        last_sessions_menu_block = None
-
+    split_submenu = [*menu_subheader("New Session Location")]
     if split_direction == "vertical":
         split_command = "split-window -v"
-        split_name = "Vertical"
-        split_variants = [
-            "Split Horizontal",
-            "\\",
-            f'run "{script_path} noc_menu --split_direction horizontal"',
-            "Open in New Window",
-            "n",
-            f'run "{script_path} noc_menu --split_direction new"',
-            "Open in Current Pane",
-            "r",
-            f'run "{script_path} noc_menu --split_direction reopen"',
-            "",
+        split_submenu += [
+            *menu_text("Current location: #[underscore]Vertical Pane"),
+            *MENU_EMPTY_LINE,
+            *split_hor_entry,
+            *new_window_entry,
+            *reopen_entry,
         ]
     elif split_direction == "horizontal":
         split_command = "split-window -h"
-        split_name = "Horizontal"
-        split_variants = [
-            "Split Vertical",
-            "-",
-            f'run "{script_path} noc_menu --split_direction vertical"',
-            "Open in New Window",
-            "n",
-            f'run "{script_path} noc_menu --split_direction new"',
-            "Open in Current Pane",
-            "r",
-            f'run "{script_path} noc_menu --split_direction reopen"',
-            "",
+        split_submenu += [
+            *menu_text("Current location: #[underscore]Horizontal Pane"),
+            *MENU_EMPTY_LINE,
+            *split_vert_entry,
+            *new_window_entry,
+            *reopen_entry,
         ]
     elif split_direction == "reopen":
         split_command = "respawn-pane -k"
-        split_name = "Open in Current Pane"
-        split_variants = [
-            "Split Vertical",
-            "-",
-            f'run "{script_path} noc_menu --split_direction vertical"',
-            "Split Horizontal",
-            "\\",
-            f'run "{script_path} noc_menu --split_direction horizontal"',
-            "Open in New Window",
-            "n",
-            f'run "{script_path} noc_menu --split_direction new"',
-            "",
+        split_submenu += [
+            *menu_text("Current location: #[underscore]Current Pane"),
+            *MENU_EMPTY_LINE,
+            *split_vert_entry,
+            *split_hor_entry,
+            *new_window_entry,
         ]
     else:
         split_command = "new-window"
-        split_name = "New Window"
-        split_variants = [
-            "Split Vertical",
-            "-",
-            f'run "{script_path} noc_menu --split_direction vertical"',
-            "Split Horizontal",
-            "\\",
-            f'run "{script_path} noc_menu --split_direction horizontal"',
-            "Open in Current Pane",
-            "r",
-            f'run "{script_path} noc_menu --split_direction reopen"',
-            "",
+        split_submenu += [
+            *menu_text("Current location: #[underscore]New Window"),
+            *MENU_EMPTY_LINE,
+            *split_vert_entry,
+            *split_hor_entry,
+            *reopen_entry,
         ]
 
-    command = [
-        "tmux",
-        "display-menu",
-        "-T",
-        f"#[align=centre]NOC {split_name}",
-        "-x",
-        "P",
-        "-y",
-        "S",
-        *split_variants,
-        "Move Pane to Window - Vertical",
-        "m",
-        f'run "{script_path} move_pane_window --split_direction vertical"',
-        "Move Pane to Window - Horizontal",
-        "M",
-        f'run "{script_path} move_pane_window --split_direction horizontal"',
-        "",
-        # -----
-        "Show Sessions History",
-        "h",
-        (
-            f'{split_command} "less +G $HOME/tmuxNOC/local/sessions_history.log"; '
-            f'set -p @pane_name "Sessions History"; run "{script_path} rename_window"'
+    misc_menu = [
+        *menu_subheader("Miscellaneous"),
+        *MENU_EMPTY_LINE,
+        *MenuEntry(
+            "Show Sessions History",
+            "h",
+            (
+                f'{split_command} "less +G $HOME/tmuxNOC/local/sessions_history.log"; '
+                f'set -p @pane_name "Sessions History"; run "{LP.script} rename_window"'
+            ),
         ),
-        "Open Log File",
-        "l",
-        (
-            f'command-prompt -p "Open Log Number:" \'run "{script_path} open_log '
-            f"--history_index %1 --split_direction {split_direction}\"'"
+        *MenuEntry(
+            "Open Log File",
+            "l",
+            (
+                f'command-prompt -p "Open Log Number:" \'run "{LP.script} open_log '
+                f"--history_index %1 --split_direction {split_direction}\"'"
+            ),
         ),
-        "Search in Logs",
-        "L",
-        f'{split_command} "{script_path} search_logs"; set -p @pane_name "grep in logs"',
-        # -----
+        *MenuEntry(
+            "Search in Logs", "L", f'{split_command} "{LP.script} search_logs"; set -p @pane_name "grep in logs"'
+        ),
     ]
-    command += [
-        # -----
-        "",
-        "Connect from Clipboard",
-        "v",
-        f'run "{script_path} clipboard_menu --split_direction {split_direction}"',
-        "New Telnet",
-        "q",
-        (f'run "{script_path} setup_connection --connection_type telnet --split_direction {split_direction}"'),
-        "New Jump Telnet",
-        "J",
-        (f'run "{script_path} setup_connection --connection_type jtelnet --split_direction {split_direction}"'),
-        "New SSH",
-        "s",
-        (f'run "{script_path} setup_connection --connection_type ssh --split_direction {split_direction}"'),
+
+    session_menu = [
+        *menu_subheader("Create New Session"),
+        *MENU_EMPTY_LINE,
+        *MenuEntry(
+            "Connect from Clipboard", "v", f'run "{LP.script} clipboard_menu --split_direction {split_direction}"'
+        ),
+        *MenuEntry(
+            "New Telnet",
+            "q",
+            (f'run "{LP.script} setup_connection --connection_type telnet --split_direction {split_direction}"'),
+        ),
+        *MenuEntry(
+            "New Jump Telnet",
+            "J",
+            (f'run "{LP.script} setup_connection --connection_type jtelnet --split_direction {split_direction}"'),
+        ),
+        *MenuEntry(
+            "New SSH",
+            "s",
+            (f'run "{LP.script} setup_connection --connection_type ssh --split_direction {split_direction}"'),
+        ),
     ]
     if ssh_config_hosts():
-        command += [
-            "SSH Config Hosts",
-            "S",
-            f'run "{script_path} ssh_menu --split_direction {split_direction}"',
-        ]
-    if last_sessions_menu_block is not None:
-        command += last_sessions_menu_block
-    subprocess.run(command, check=True)
+        session_menu.extend(
+            MenuEntry("SSH Config Hosts", "S", f'run "{LP.script} ssh_menu --split_direction {split_direction}"')
+        )
+
+    ### Add last 5 opened sessions to the end of menu
+    history_menu = [
+        *menu_subheader("Recent Sessions"),
+        *MENU_EMPTY_LINE,
+    ]
+    last_sessions = load_sessions_metadata().get("last_five_sessions", [])
+    if not last_sessions:
+        history_menu.extend(menu_text("No recent sessions", styles="align=centre,dim"))
+    for session_index, session in enumerate(last_sessions, start=1):
+        connection_type: str = session["connection_type"]
+        host: str = session["host"]
+        host_short = short_word(host)
+        history_menu.extend(
+            MenuEntry(
+                f"{connection_type} {host_short}",
+                str(session_index),
+                f"run \"{LP.script} connect_{connection_type} --host '{host}' --split_direction {split_direction}\"",
+            )
+        )
+
+    tmux_cmd = ["tmux", "display-menu", "-T", "#[align=centre]NOC Menu", "-x", "P", "-y", "S"]
+    full_menu = [
+        *MENU_DELIMITER,
+        *split_submenu,
+        *MENU_DELIMITER,
+        *session_menu,
+        *MENU_DELIMITER,
+        *misc_menu,
+        *MENU_DELIMITER,
+        *history_menu,
+    ]
+
+    subprocess.run([*tmux_cmd, *full_menu], check=True)
 
 
 def setup_connection(connection_type, split_direction):
