@@ -283,48 +283,6 @@ def ssh_menu(split_direction: str) -> None:
     subprocess.run([*tmux_cmd, *menu], check=True)
 
 
-def clipboard_menu(split_direction):
-    """Show menu with options to connect to first word in clipboard."""
-    clipboard_first_line = subprocess.check_output(LP.paste, encoding="UTF-8").split("\n")[0]
-    clipboard_first_word = [word for word in clipboard_first_line.replace("\t", "").split(" ") if len(word) != 0]
-    if len(clipboard_first_word) != 0:
-        clipboard_first_word = clipboard_first_word[0]
-        clipboard_first_word_short = short_word(clipboard_first_word)
-        subprocess.run(
-            [
-                "tmux",
-                "display-menu",
-                "-T",
-                "#[align=centre]Clipboard",
-                "-x",
-                "P",
-                "-y",
-                "S",
-                f"telnet {clipboard_first_word_short}",
-                "v",
-                (
-                    f'run "{LP.script} connect_telnet '
-                    f"--host '{clipboard_first_word}' --split_direction {split_direction}\""
-                ),
-                f"jtelnet {clipboard_first_word_short}",
-                "J",
-                (
-                    f'run "{LP.script} connect_jtelnet '
-                    f"--host '{clipboard_first_word}' --split_direction {split_direction}\""
-                ),
-                f"ssh {clipboard_first_word_short}",
-                "V",
-                (
-                    f'run "{LP.script} connect_ssh '
-                    f"--host '{clipboard_first_word}' --split_direction {split_direction}\""
-                ),
-            ],
-            check=True,
-        )
-    else:
-        tmux_dm("No content in clipboard.")
-
-
 def move_pane_window(split_direction):
     """Menu for moving pane to another window."""
     if split_direction == "vertical":
@@ -451,9 +409,6 @@ def noc_menu(split_direction: str = "new") -> None:
     session_menu = [
         *menu_subheader("Create New Session"),
         *MENU_EMPTY_LINE,
-        *MenuEntry(
-            "Connect from Clipboard", "v", f'run "{LP.script} clipboard_menu --split_direction {split_direction}"'
-        ),
         *MenuEntry(
             "New Telnet",
             "q",
@@ -808,7 +763,6 @@ if __name__ == "__main__":
             "login",
             "noc_menu",
             "ssh_menu",
-            "clipboard_menu",
             "move_pane_window",
             "setup_connection",
             "connect_telnet",
@@ -843,8 +797,6 @@ if __name__ == "__main__":
         noc_menu(args.split_direction)
     elif args.type == "ssh_menu":
         ssh_menu(args.split_direction)
-    elif args.type == "clipboard_menu":
-        clipboard_menu(args.split_direction)
     elif args.type == "move_pane_window":
         move_pane_window(args.split_direction)
     elif args.type == "setup_connection":
