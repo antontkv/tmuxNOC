@@ -251,38 +251,36 @@ def short_word(word: str) -> str:
     return word_short
 
 
-def ssh_menu(split_direction):
+def ssh_menu(split_direction: str) -> None:
     """Show ssh menu with hosts from .ssh/config."""
-    command = [
-        "tmux",
-        "display-menu",
-        "-T",
-        "#[align=centre]SSH Config Hosts",
-        "-x",
-        "P",
-        "-y",
-        "S",
-    ]
+    tmux_cmd = ["tmux", "display-menu", "-T", "#[align=centre]SSH Config Hosts", "-x", "P", "-y", "S"]
+    menu: list[str] = []
     ssh_hosts_list = ssh_config_hosts()
-    if ssh_hosts_list is not None:
-        for index, host in enumerate(ssh_hosts_list):
-            index += 1
-            if index == 10:
-                index = 0
-            elif 20 > index > 10:
-                index = f"M-{index - 10}"
-            elif index == 20:
-                index = "M-0"
-            elif 30 > index > 20:
-                index = f"C-{index - 20}"
-            elif index == 30:
-                index = "C-0"
-            command += [
+    if not ssh_hosts_list:
+        return
+
+    for index, host in enumerate(ssh_hosts_list):
+        index += 1
+        key = str(index)
+        if index == 10:
+            key = "0"
+        elif 20 > index > 10:
+            key = f"M-{index - 10}"
+        elif index == 20:
+            key = "M-0"
+        elif 30 > index > 20:
+            key = f"C-{index - 20}"
+        elif index == 30:
+            key = "C-0"
+
+        menu.extend(
+            MenuEntry(
                 short_word(host),
-                str(index),
-                (f"run \"{LP.script} connect_ssh --host '{host}' --split_direction {split_direction}\""),
-            ]
-    subprocess.run(command, check=True)
+                key,
+                f"run \"{LP.script} connect_ssh --host '{host}' --split_direction {split_direction}\"",
+            )
+        )
+    subprocess.run([*tmux_cmd, *menu], check=True)
 
 
 def clipboard_menu(split_direction):
