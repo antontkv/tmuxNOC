@@ -251,6 +251,21 @@ def short_word(word: str) -> str:
     return word_short
 
 
+def index_to_key(index: int) -> str:
+    key = str(index)
+    if index == 10:
+        key = "0"
+    elif 20 > index > 10:
+        key = f"M-{index - 10}"
+    elif index == 20:
+        key = "M-0"
+    elif 30 > index > 20:
+        key = f"C-{index - 20}"
+    elif index == 30:
+        key = "C-0"
+    return key
+
+
 def ssh_menu(split_direction: str) -> None:
     """Show ssh menu with hosts from .ssh/config."""
     tmux_cmd = ["tmux", "display-menu", "-T", "#[align=centre]SSH Config Hosts", "-x", "P", "-y", "S"]
@@ -259,31 +274,18 @@ def ssh_menu(split_direction: str) -> None:
     if not ssh_hosts_list:
         return
 
-    for index, host in enumerate(ssh_hosts_list):
-        index += 1
-        key = str(index)
-        if index == 10:
-            key = "0"
-        elif 20 > index > 10:
-            key = f"M-{index - 10}"
-        elif index == 20:
-            key = "M-0"
-        elif 30 > index > 20:
-            key = f"C-{index - 20}"
-        elif index == 30:
-            key = "C-0"
-
+    for index, host in enumerate(ssh_hosts_list, start=1):
         menu.extend(
             MenuEntry(
                 short_word(host),
-                key,
+                index_to_key(index),
                 f"run \"{LP.script} connect_ssh --host '{host}' --split_direction {split_direction}\"",
             )
         )
     subprocess.run([*tmux_cmd, *menu], check=True)
 
 
-def move_pane_window(split_direction):
+def move_pane_window(split_direction: str) -> None:
     """Menu for moving pane to another window."""
     if split_direction == "vertical":
         split_argument = "-h"
@@ -292,49 +294,47 @@ def move_pane_window(split_direction):
     else:
         return
 
+    # &&& is delimiter between values, to try not conflict with any value in pane names
     windows_list = subprocess.check_output(
         ["tmux", "list-windows", "-F", "#I&&&#W&&&#{window_id}"], encoding="utf-8"
     ).split("\n")[:-1]
 
-    windows_menu = []
+    menu: list[str] = []
     for window in windows_list:
         index, name, _id = window.split("&&&")
-        windows_menu.append(f"{index}:{short_word(name)}")
-        if int(index) < 10:
-            windows_menu.append(index)
-        else:
-            windows_menu.append("")
-        windows_menu.append(f'join-pane {split_argument} -t {_id}; run "{LP.script} rename_windows"')
+        menu.extend(
+            MenuEntry(
+                f"{index}:{short_word(name)}",
+                index_to_key(int(index)),
+                f'join-pane {split_argument} -t {_id}; run "{LP.script} rename_windows"',
+            )
+        )
 
-    subprocess.run(
-        [
-            "tmux",
-            "display-menu",
-            "-T",
-            "#[align=centre]Move Pane to:",
-            "-x",
-            "P",
-            "-y",
-            "S",
-            *windows_menu,
-        ],
-        check=True,
-    )
+    tmux_cmd = ["tmux", "display-menu", "-T", "#[align=centre]Move Pane to:", "-x", "P", "-y", "S"]
+    subprocess.run([*tmux_cmd, *menu], check=True)
 
 
-# def tmux_menu():
-#     move_submenu = [
-#         *MenuEntry(
-#             "Move Pane to Other Window (Vertical)",
-#             "m",
-#             f'run "{LP.script} move_pane_window --split_direction vertical"',
-#         ),
-#         *MenuEntry(
-#             "Move Pane to Other Window (Horizontal)",
-#             "M",
-#             f'run "{LP.script} move_pane_window --split_direction horizontal"',
-#         ),
-#     ]
+def tmux_menu() -> None:
+    move_submenu = [
+        *menu_subheader("Move Pane to Other Window"),
+        *MENU_EMPTY_LINE,
+        *MenuEntry(
+            "Move Vertically",
+            "m",
+            f'run "{LP.script} move_pane_window --split_direction vertical"',
+        ),
+        *MenuEntry(
+            "Move Horizontally",
+            "M",
+            f'run "{LP.script} move_pane_window --split_direction horizontal"',
+        ),
+    ]
+    menu = [
+        *MENU_DELIMITER,
+        *move_submenu,
+    ]
+    tmux_cmd = ["tmux", "display-menu", "-T", "#[align=centre]Tmux Menu", "-x", "P", "-y", "S"]
+    subprocess.run([*tmux_cmd, *menu], check=True)
 
 
 def noc_menu(split_direction: str = "new") -> None:
@@ -762,6 +762,7 @@ if __name__ == "__main__":
         choices=[
             "login",
             "noc_menu",
+            "tmux_menu",
             "ssh_menu",
             "move_pane_window",
             "setup_connection",
@@ -795,6 +796,8 @@ if __name__ == "__main__":
         send_login_pwd(args.login_number)
     elif args.type == "noc_menu":
         noc_menu(args.split_direction)
+    elif args.type == "tmux_menu":
+        tmux_menu()
     elif args.type == "ssh_menu":
         ssh_menu(args.split_direction)
     elif args.type == "move_pane_window":
@@ -823,3 +826,5 @@ if __name__ == "__main__":
         prompt_for_ssh_login(args.host)
     elif args.type == "interactive_test":
         InteractiveTest()
+    else:
+        print(f"Unknown action '{args.type}'")
