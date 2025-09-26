@@ -11,6 +11,9 @@ from pathlib import Path
 from typing import Any, Callable, NamedTuple
 
 
+##############
+### Config ###
+##############
 class AC:
     """ANSI Colors."""
 
@@ -41,6 +44,9 @@ class LP:
     logins = local_dir / ".logins"
 
 
+####################
+### Menu Helpers ###
+####################
 class MenuEntry(NamedTuple):
     """Tmux Menu Entry."""
 
@@ -63,7 +69,10 @@ MENU_DELIMITER = ("",)
 MENU_EMPTY_LINE = menu_text("")
 
 
-def get_split_command(split_direction: str) -> list[str]:
+#######################
+### General Helpers ###
+#######################
+def h_get_split_command(split_direction: str) -> list[str]:
     """What commands to use in what situation."""
     if split_direction == "vertical":
         return ["tmux", "split-window", "-v"]
@@ -74,75 +83,16 @@ def get_split_command(split_direction: str) -> list[str]:
     return ["tmux", "new-window"]
 
 
-def save_pane_history(output_file_name: str, pane_id: str = ":", pipe: str = "o", only_once: bool = False) -> None:
-    """Saves whole pane history to a file."""
-    for _ in pipe:
-        output = subprocess.check_output(
-            ["tmux", "capture-pane", "-J", "-p", "-S", "-20000", "-t", pane_id], encoding="UTF-8"
-        )
-        if output == "":
-            continue
-        with open(output_file_name, "w") as f:
-            f.write(output)
-        if only_once:
-            break
-        time.sleep(1)
-
-
-def pane_log(connection_type: str, host: str, restart: bool = False) -> None:
-    """Toggle pane log."""
-    sessions_metadata = load_sessions_metadata()
-    last_session_index = "--" if connection_type == "l" else sessions_metadata["last_session_index"]
-    year = datetime.datetime.now().strftime("%Y")
-    month = datetime.datetime.now().strftime("%m")
-    day = datetime.datetime.now().strftime("%d")
-    current_time = datetime.datetime.now().strftime("%H_%M_%S")
-    log_filename = (
-        f"{LP.log_dir}/{year}/{month}/{day}/{current_time}---!{last_session_index}_{connection_type}_{host}.log"
-    )
-    Path(log_filename).parent.mkdir(parents=True, exist_ok=True)
-
-    subprocess.run(
-        [
-            "tmux",
-            "pipe-pane",
-            "-o",
-            f'{LP.script} save_pane_history --file_name "{log_filename}" --pane_id #{{pane_id}} -i -',
-        ],
-        check=True,
-    )
-    if restart:
-        subprocess.run(
-            [
-                "tmux",
-                "pipe-pane",
-                "-o",
-                f'{LP.script} save_pane_history --file_name "{log_filename}" --pane_id #{{pane_id}} -i -',
-            ],
-            check=True,
-        )
-
-
-def tmux_dm(message: str) -> None:
-    """Display message in status line."""
-    subprocess.run(["tmux", "display-message", message], check=True)
-
-
-def tmux_set_pane_name(name: str) -> None:
-    """Setting pane name."""
-    subprocess.run(["tmux", "set", "-p", "@pane_name", name], check=True)
-
-
-def load_sessions_metadata() -> dict[str, Any]:
+def h_load_sessions_metadata() -> dict[str, Any]:
     if not os.path.exists(LP.sessions_metadata):
         return {}
     with open(LP.sessions_metadata, "r") as f:
         return json.load(f)
 
 
-def save_session(connection_type: str, host: str) -> None:
+def h_save_session(connection_type: str, host: str) -> None:
     """Saves information about session and updates metadata."""
-    sessions_metadata = load_sessions_metadata()
+    sessions_metadata = h_load_sessions_metadata()
     if "last_session_index" in sessions_metadata:
         sessions_metadata["last_session_index"] += 1
     else:
@@ -186,7 +136,7 @@ def save_session(connection_type: str, host: str) -> None:
         )
 
 
-def ssh_config_hosts() -> list[str]:
+def h_ssh_config_hosts() -> list[str]:
     """Get .ssh/config hosts. Return list of hostnames."""
     if not os.path.exists(f"{LP.home}/.ssh/config"):
         return []
@@ -196,7 +146,7 @@ def ssh_config_hosts() -> list[str]:
     return [line.replace("Host ", "") for line in ssh_config if line.startswith("Host")]
 
 
-def short_word(word: str) -> str:
+def h_short_word(word: str) -> str:
     """This is for tmux menus.
 
     Tmux menu will not show, if it's content is to big for terminal window.
@@ -211,7 +161,7 @@ def short_word(word: str) -> str:
     return word_short
 
 
-def index_to_key(index: int) -> str:
+def h_index_to_key(index: int) -> str:
     key = str(index)
     if index == 10:
         key = "0"
@@ -226,78 +176,90 @@ def index_to_key(index: int) -> str:
     return key
 
 
-def ssh_menu(split_direction: str) -> None:
-    """Show ssh menu with hosts from .ssh/config."""
-    tmux_cmd = ["tmux", "display-menu", "-T", "#[align=centre]SSH Config Hosts", "-x", "P", "-y", "S"]
-    menu: list[str] = []
-    ssh_hosts_list = ssh_config_hosts()
-    if not ssh_hosts_list:
+def h_yes_no(question: str) -> bool:
+    """Prompt the yes/no-*question* to the user."""
+    while True:
+        user_input = input(question + " [Y/n]: ")
+        if user_input == "":
+            return True
+        if "yes".startswith(user_input.lower()):
+            return True
+        if "no".startswith(user_input.lower()):
+            return False
+        print("It's yes or no question.\n")
+
+
+####################
+### Tmux Helpers ###
+####################
+def tmux_dm(message: str) -> None:
+    """Display message in status line."""
+    subprocess.run(["tmux", "display-message", message], check=True)
+
+
+def tmux_set_pane_name(name: str) -> None:
+    """Setting pane name."""
+    subprocess.run(["tmux", "set", "-p", "@pane_name", name], check=True)
+
+
+def tmux_send(string: str, conformation_symbol: str = "Enter", target_pane: str = ":") -> None:
+    """Send string to the pane."""
+    subprocess.run(["tmux", "send-keys", "-t", target_pane, string, f"{conformation_symbol}"], check=True)
+
+
+def tmux_wait_for(string: str, timeout: float = 3.0, to_lower: bool = False) -> bool:
+    """Wait for the string to show up in terminal.
+
+    Returns true if string in the last 2 lines on the screen, else false.
+    """
+    for _ in range(int(timeout * 10)):  # Number of 0.1 ticks. 0.1 -> 1, 3.5 -> 35
+        screen_content = [
+            line
+            for line in subprocess.check_output(["tmux", "capture-pane", "-J", "-p"], encoding="utf-8").splitlines()
+            if len(line) != 0
+        ]
+        for line in screen_content[-2:]:
+            if to_lower:
+                line = line.lower()
+            if string in line:
+                return True
+        time.sleep(0.1)
+
+    return False
+
+
+################
+### Commands ###
+################
+def cmd_login(login_number: int) -> None:
+    """Send login/password sequence."""
+    login, password = "", ""
+
+    if not LP.logins.exists():
+        tmux_dm(f"File {LP.logins} doesn't exists.")
         return
-
-    for index, host in enumerate(ssh_hosts_list, start=1):
-        menu.extend(
-            MenuEntry(
-                short_word(host),
-                index_to_key(index),
-                f"run \"{LP.script} connect_ssh --host '{host}' --split_direction {split_direction}\"",
-            )
-        )
-    subprocess.run([*tmux_cmd, *menu], check=True)
-
-
-def move_pane_window(split_direction: str) -> None:
-    """Menu for moving pane to another window."""
-    if split_direction == "vertical":
-        split_argument = "-h"
-    elif split_direction == "horizontal":
-        split_argument = "-v"
+    with open(LP.logins, "r") as f:
+        logins = f.read().splitlines()
+    for line in logins:
+        if line.startswith(f"LOGIN{login_number}"):
+            login = line.replace(f"LOGIN{login_number}=", "")
+        if line.startswith(f"PASS{login_number}") or line.startswith(f"PASSWORD{login_number}"):
+            password = line.replace(f"PASS{login_number}=", "").replace(f"PASSWORD{login_number}=", "")
+    if not login or not password:
+        tmux_dm(f"Login-password pair {login_number} not found in {LP.logins}.")
+        return
+    if tmux_wait_for("assword", timeout=0.1, to_lower=True):
+        # If password prompt available right away, send password only.
+        tmux_send(password)
+        return
+    tmux_send(login)
+    if tmux_wait_for("assword", to_lower=True):
+        tmux_send(password)
     else:
-        return
-
-    # &&& is delimiter between values, to try not conflict with any value in pane names
-    windows_list = subprocess.check_output(
-        ["tmux", "list-windows", "-F", "#I&&&#W&&&#{window_id}"], encoding="utf-8"
-    ).split("\n")[:-1]
-
-    menu: list[str] = []
-    for window in windows_list:
-        index, name, _id = window.split("&&&")
-        menu.extend(
-            MenuEntry(
-                f"{index}:{short_word(name)}",
-                index_to_key(int(index)),
-                f'join-pane {split_argument} -t {_id}; run "{LP.script} rename_windows"',
-            )
-        )
-
-    tmux_cmd = ["tmux", "display-menu", "-T", "#[align=centre]Move Pane to:", "-x", "P", "-y", "S"]
-    subprocess.run([*tmux_cmd, *menu], check=True)
+        tmux_dm("Password prompt not found.")
 
 
-def tmux_menu() -> None:
-    move_submenu = [
-        *menu_subheader("Move Pane to Other Window"),
-        *MENU_EMPTY_LINE,
-        *MenuEntry(
-            "Move Vertically",
-            "m",
-            f'run "{LP.script} move_pane_window --split_direction vertical"',
-        ),
-        *MenuEntry(
-            "Move Horizontally",
-            "M",
-            f'run "{LP.script} move_pane_window --split_direction horizontal"',
-        ),
-    ]
-    menu = [
-        *MENU_DELIMITER,
-        *move_submenu,
-    ]
-    tmux_cmd = ["tmux", "display-menu", "-T", "#[align=centre]Tmux Menu", "-x", "P", "-y", "S"]
-    subprocess.run([*tmux_cmd, *menu], check=True)
-
-
-def noc_menu(split_direction: str = "new") -> None:
+def cmd_noc_menu(split_direction: str = "new") -> None:
     """Show main tmuxNOC menu."""
     split_hor_entry = MenuEntry("Horizontal Pane", "\\", f'run "{LP.script} noc_menu --split_direction horizontal"')
     split_vert_entry = MenuEntry("Vertical Pane", "-", f'run "{LP.script} noc_menu --split_direction vertical"')
@@ -369,7 +331,7 @@ def noc_menu(split_direction: str = "new") -> None:
             (f'run "{LP.script} setup_connection --connection_type ssh --split_direction {split_direction}"'),
         ),
     ]
-    if ssh_config_hosts():
+    if h_ssh_config_hosts():
         session_menu.extend(
             MenuEntry("SSH Config Hosts", "S", f'run "{LP.script} ssh_menu --split_direction {split_direction}"')
         )
@@ -379,13 +341,13 @@ def noc_menu(split_direction: str = "new") -> None:
         *menu_subheader("Recent Sessions"),
         *MENU_EMPTY_LINE,
     ]
-    last_sessions = load_sessions_metadata().get("last_five_sessions", [])
+    last_sessions = h_load_sessions_metadata().get("last_five_sessions", [])
     if not last_sessions:
         history_menu.extend(menu_text("No recent sessions", styles="align=centre,dim"))
     for session_index, session in enumerate(last_sessions, start=1):
         connection_type: str = session["connection_type"]
         host: str = session["host"]
-        host_short = short_word(host)
+        host_short = h_short_word(host)
         history_menu.extend(
             MenuEntry(
                 f"{connection_type} {host_short}",
@@ -409,9 +371,80 @@ def noc_menu(split_direction: str = "new") -> None:
     subprocess.run([*tmux_cmd, *full_menu], check=True)
 
 
-def setup_connection(connection_type: str, split_direction: str) -> None:
+def cmd_tmux_menu() -> None:
+    move_submenu = [
+        *menu_subheader("Move Pane to Other Window"),
+        *MENU_EMPTY_LINE,
+        *MenuEntry(
+            "Move Vertically",
+            "m",
+            f'run "{LP.script} move_pane_window --split_direction vertical"',
+        ),
+        *MenuEntry(
+            "Move Horizontally",
+            "M",
+            f'run "{LP.script} move_pane_window --split_direction horizontal"',
+        ),
+    ]
+    menu = [
+        *MENU_DELIMITER,
+        *move_submenu,
+    ]
+    tmux_cmd = ["tmux", "display-menu", "-T", "#[align=centre]Tmux Menu", "-x", "P", "-y", "S"]
+    subprocess.run([*tmux_cmd, *menu], check=True)
+
+
+def cmd_ssh_menu(split_direction: str) -> None:
+    """Show ssh menu with hosts from .ssh/config."""
+    tmux_cmd = ["tmux", "display-menu", "-T", "#[align=centre]SSH Config Hosts", "-x", "P", "-y", "S"]
+    menu: list[str] = []
+    ssh_hosts_list = h_ssh_config_hosts()
+    if not ssh_hosts_list:
+        return
+
+    for index, host in enumerate(ssh_hosts_list, start=1):
+        menu.extend(
+            MenuEntry(
+                h_short_word(host),
+                h_index_to_key(index),
+                f"run \"{LP.script} connect_ssh --host '{host}' --split_direction {split_direction}\"",
+            )
+        )
+    subprocess.run([*tmux_cmd, *menu], check=True)
+
+
+def cmd_move_pane_window(split_direction: str) -> None:
+    """Menu for moving pane to another window."""
+    if split_direction == "vertical":
+        split_argument = "-h"
+    elif split_direction == "horizontal":
+        split_argument = "-v"
+    else:
+        return
+
+    # &&& is delimiter between values, to try not conflict with any value in pane names
+    windows_list = subprocess.check_output(
+        ["tmux", "list-windows", "-F", "#I&&&#W&&&#{window_id}"], encoding="utf-8"
+    ).split("\n")[:-1]
+
+    menu: list[str] = []
+    for window in windows_list:
+        index, name, _id = window.split("&&&")
+        menu.extend(
+            MenuEntry(
+                f"{index}:{h_short_word(name)}",
+                h_index_to_key(int(index)),
+                f'join-pane {split_argument} -t {_id}; run "{LP.script} rename_windows"',
+            )
+        )
+
+    tmux_cmd = ["tmux", "display-menu", "-T", "#[align=centre]Move Pane to:", "-x", "P", "-y", "S"]
+    subprocess.run([*tmux_cmd, *menu], check=True)
+
+
+def cmd_setup_connection(connection_type: str, split_direction: str) -> None:
     """Showing connection prompt."""
-    sessions_metadata = load_sessions_metadata()
+    sessions_metadata = h_load_sessions_metadata()
     if f"last_{connection_type}_session" in sessions_metadata:
         hostname = sessions_metadata[f"last_{connection_type}_session"]
     else:
@@ -428,52 +461,42 @@ def setup_connection(connection_type: str, split_direction: str) -> None:
     subprocess.run(command, check=True)
 
 
-def connect_telnet(host: str, split_direction: str) -> None:
+def cmd_connect_telnet(host: str, split_direction: str) -> None:
     subprocess.run(
         [
-            *get_split_command(split_direction),
+            *h_get_split_command(split_direction),
             f'PROMPT_COMMAND="{LP.home}/tmuxNOC/scripts/kbdfix.sh telnet {host}" TERM=vt100-w bash \
               --rcfile {LP.home}/tmuxNOC/misc/tmux_noc_bashrc',
         ],
         check=True,
     )
     tmux_set_pane_name(f"t/{host}")
-    rename_window()
-    save_session("telnet", host)
+    cmd_rename_window()
+    h_save_session("telnet", host)
     if split_direction == "reopen":
-        pane_log("t", host, restart=True)
+        cmd_pane_log("t", host, restart=True)
     else:
-        pane_log("t", host)
+        cmd_pane_log("t", host)
 
 
-def yes_no(question: str) -> bool:
-    """Prompt the yes/no-*question* to the user."""
-    while True:
-        user_input = input(question + " [Y/n]: ")
-        if user_input == "":
-            return True
-        if "yes".startswith(user_input.lower()):
-            return True
-        if "no".startswith(user_input.lower()):
-            return False
-        print("It's yes or no question.\n")
-
-
-def prompt_for_ssh_login(host: str) -> None:
-    use_kbdfix = yes_no("Use kbdfix.sh and VT100 terminal?")
+def cmd_prompt_for_ssh_login(host: str) -> None:
+    use_kbdfix = h_yes_no("Use kbdfix.sh and VT100 terminal?")
     username = input("Username: ")
-    connect_ssh(host, "reopen", use_kbdfix, username)
+    cmd_connect_ssh(host, "reopen", use_kbdfix, username)
 
 
-def connect_ssh(host: str, split_direction: str, use_kbdfix: bool | None = None, username: str | None = None) -> None:
+def cmd_connect_ssh(
+    host: str, split_direction: str, use_kbdfix: bool | None = None, username: str | None = None
+) -> None:
     home = LP.home
     script = LP.script
 
-    prompt_for_login = not (host in ssh_config_hosts() or "@" in host)
+    prompt_for_login = not (host in h_ssh_config_hosts() or "@" in host)
 
     if prompt_for_login and use_kbdfix is None:
         subprocess.run(
-            [*get_split_command(split_direction), f'bash -c "{script} prompt_for_ssh_login --host {host}"'], check=True
+            [*h_get_split_command(split_direction), f'bash -c "{script} prompt_for_ssh_login --host {host}"'],
+            check=True,
         )
     elif use_kbdfix is not None:
         if use_kbdfix:
@@ -483,21 +506,70 @@ def connect_ssh(host: str, split_direction: str, use_kbdfix: bool | None = None,
         else:
             command = f'PROMPT_COMMAND="ssh -o ServerAliveInterval=300 -o StrictHostKeyChecking=no \
                         -l {username} {host}" bash --rcfile {home}/tmuxNOC/misc/tmux_noc_bashrc'
-        subprocess.run([*get_split_command(split_direction), command], check=True)
+        subprocess.run([*h_get_split_command(split_direction), command], check=True)
     else:
         command = f'PROMPT_COMMAND="ssh -o ServerAliveInterval=300 -o StrictHostKeyChecking=no {host}" \
                     bash --rcfile {home}/tmuxNOC/misc/tmux_noc_bashrc'
-        subprocess.run([*get_split_command(split_direction), command], check=True)
+        subprocess.run([*h_get_split_command(split_direction), command], check=True)
     tmux_set_pane_name(f"s/{host}")
-    rename_window()
-    save_session("ssh", host)
+    cmd_rename_window()
+    h_save_session("ssh", host)
     if split_direction == "reopen":
-        pane_log("s", host, restart=True)
+        cmd_pane_log("s", host, restart=True)
     else:
-        pane_log("s", host)
+        cmd_pane_log("s", host)
 
 
-def rename_window(window_id: str = ":") -> None:
+def cmd_pane_log(connection_type: str, host: str, restart: bool = False) -> None:
+    """Toggle pane log."""
+    sessions_metadata = h_load_sessions_metadata()
+    last_session_index = "--" if connection_type == "l" else sessions_metadata["last_session_index"]
+    year = datetime.datetime.now().strftime("%Y")
+    month = datetime.datetime.now().strftime("%m")
+    day = datetime.datetime.now().strftime("%d")
+    current_time = datetime.datetime.now().strftime("%H_%M_%S")
+    log_filename = (
+        f"{LP.log_dir}/{year}/{month}/{day}/{current_time}---!{last_session_index}_{connection_type}_{host}.log"
+    )
+    Path(log_filename).parent.mkdir(parents=True, exist_ok=True)
+
+    subprocess.run(
+        [
+            "tmux",
+            "pipe-pane",
+            "-o",
+            f'{LP.script} save_pane_history --file_name "{log_filename}" --pane_id #{{pane_id}} -i -',
+        ],
+        check=True,
+    )
+    if restart:
+        subprocess.run(
+            [
+                "tmux",
+                "pipe-pane",
+                "-o",
+                f'{LP.script} save_pane_history --file_name "{log_filename}" --pane_id #{{pane_id}} -i -',
+            ],
+            check=True,
+        )
+
+
+def cmd_save_pane_history(output_file_name: str, pane_id: str = ":", pipe: str = "o", only_once: bool = False) -> None:
+    """Saves whole pane history to a file."""
+    for _ in pipe:
+        output = subprocess.check_output(
+            ["tmux", "capture-pane", "-J", "-p", "-S", "-20000", "-t", pane_id], encoding="UTF-8"
+        )
+        if output == "":
+            continue
+        with open(output_file_name, "w") as f:
+            f.write(output)
+        if only_once:
+            break
+        time.sleep(1)
+
+
+def cmd_rename_window(window_id: str = ":") -> None:
     """Names windows according to pane name. If user option @window_title is set for window it won't be renamed."""
     window_title = subprocess.check_output(["tmux", "show", "-t", window_id, "-w", "@window_title"], encoding="UTF-8")
     if window_title:
@@ -520,71 +592,17 @@ def rename_window(window_id: str = ":") -> None:
         subprocess.run(["tmux", "set", "-w", "-t", window_id, "automatic-rename", "on"], check=True)
 
 
-def rename_windows() -> None:
+def cmd_rename_windows() -> None:
     """Rename all windows."""
     windows_list = subprocess.check_output(["tmux", "list-windows", "-F", "#{window_id}"], encoding="UTF-8").split(
         "\n"
     )[:-1]
 
     for window_id in windows_list:
-        rename_window(window_id)
+        cmd_rename_window(window_id)
 
 
-def tmux_send(string: str, conformation_symbol: str = "Enter", target_pane: str = ":") -> None:
-    """Send string to the pane."""
-    subprocess.run(["tmux", "send-keys", "-t", target_pane, string, f"{conformation_symbol}"], check=True)
-
-
-def tmux_wait_for(string: str, timeout: float = 3.0, to_lower: bool = False) -> bool:
-    """Wait for the string to show up in terminal.
-
-    Returns true if string in the last 2 lines on the screen, else false.
-    """
-    for _ in range(int(timeout * 10)):  # Number of 0.1 ticks. 0.1 -> 1, 3.5 -> 35
-        screen_content = [
-            line
-            for line in subprocess.check_output(["tmux", "capture-pane", "-J", "-p"], encoding="utf-8").splitlines()
-            if len(line) != 0
-        ]
-        for line in screen_content[-2:]:
-            if to_lower:
-                line = line.lower()
-            if string in line:
-                return True
-        time.sleep(0.1)
-
-    return False
-
-
-def send_login_pwd(login_number: int) -> None:
-    """Send login/password sequence."""
-    login, password = "", ""
-
-    if not LP.logins.exists():
-        tmux_dm(f"File {LP.logins} doesn't exists.")
-        return
-    with open(LP.logins, "r") as f:
-        logins = f.read().splitlines()
-    for line in logins:
-        if line.startswith(f"LOGIN{login_number}"):
-            login = line.replace(f"LOGIN{login_number}=", "")
-        if line.startswith(f"PASS{login_number}") or line.startswith(f"PASSWORD{login_number}"):
-            password = line.replace(f"PASS{login_number}=", "").replace(f"PASSWORD{login_number}=", "")
-    if not login or not password:
-        tmux_dm(f"Login-password pair {login_number} not found in {LP.logins}.")
-        return
-    if tmux_wait_for("assword", timeout=0.1, to_lower=True):
-        # If password prompt available right away, send password only.
-        tmux_send(password)
-        return
-    tmux_send(login)
-    if tmux_wait_for("assword", to_lower=True):
-        tmux_send(password)
-    else:
-        tmux_dm("Password prompt not found.")
-
-
-class InteractiveTest:
+class CmdInteractiveTest:
     def __init__(self) -> None:
         self.keys_re = re.compile(r"`(.*?)`")
 
@@ -592,7 +610,7 @@ class InteractiveTest:
         print(f"{AC.BOLD}It's meant to test it's functions and also show it's capabilities.{AC.END}")
         print("")
 
-        if yes_no(f"{AC.YELLOW}Test login?{AC.END}"):
+        if h_yes_no(f"{AC.YELLOW}Test login?{AC.END}"):
             self.test_login()
 
     def instruction(self, instruction: str) -> None:
@@ -603,7 +621,7 @@ class InteractiveTest:
         print(f"{AC.GREEN}SUCCESS{AC.END}")
 
     def fail(self, message: str, exit_call: Callable[[], None] | None = None) -> None:
-        yn = yes_no(f"{AC.RED}FAIL: {message}. Continue other tests(y) or exit(n)?{AC.END}")
+        yn = h_yes_no(f"{AC.RED}FAIL: {message}. Continue other tests(y) or exit(n)?{AC.END}")
         if exit_call is not None:
             exit_call()
         if not yn:
@@ -668,12 +686,12 @@ if __name__ == "__main__":
             "move_pane_window",
             "setup_connection",
             "connect_telnet",
+            "prompt_for_ssh_login",
             "connect_ssh",
             "toggle_log",
             "save_pane_history",
             "rename_window",
             "rename_windows",
-            "prompt_for_ssh_login",
             "interactive_test",
         ],
     )
@@ -691,32 +709,32 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.type == "login":
-        send_login_pwd(args.login_number)
+        cmd_login(args.login_number)
     elif args.type == "noc_menu":
-        noc_menu(args.split_direction)
+        cmd_noc_menu(args.split_direction)
     elif args.type == "tmux_menu":
-        tmux_menu()
+        cmd_tmux_menu()
     elif args.type == "ssh_menu":
-        ssh_menu(args.split_direction)
+        cmd_ssh_menu(args.split_direction)
     elif args.type == "move_pane_window":
-        move_pane_window(args.split_direction)
+        cmd_move_pane_window(args.split_direction)
     elif args.type == "setup_connection":
-        setup_connection(args.connection_type, args.split_direction)
+        cmd_setup_connection(args.connection_type, args.split_direction)
     elif args.type == "connect_telnet":
-        connect_telnet(args.host, args.split_direction)
-    elif args.type == "connect_ssh":
-        connect_ssh(args.host, args.split_direction)
-    elif args.type == "toggle_log":
-        pane_log("l", "local")
-    elif args.type == "save_pane_history":
-        save_pane_history(args.file_name, args.pane_id, args.input)
-    elif args.type == "rename_window":
-        rename_window(args.window_id)
-    elif args.type == "rename_windows":
-        rename_windows()
+        cmd_connect_telnet(args.host, args.split_direction)
     elif args.type == "prompt_for_ssh_login":
-        prompt_for_ssh_login(args.host)
+        cmd_prompt_for_ssh_login(args.host)
+    elif args.type == "connect_ssh":
+        cmd_connect_ssh(args.host, args.split_direction)
+    elif args.type == "toggle_log":
+        cmd_pane_log("l", "local")
+    elif args.type == "save_pane_history":
+        cmd_save_pane_history(args.file_name, args.pane_id, args.input)
+    elif args.type == "rename_window":
+        cmd_rename_window(args.window_id)
+    elif args.type == "rename_windows":
+        cmd_rename_windows()
     elif args.type == "interactive_test":
-        InteractiveTest()
+        CmdInteractiveTest()
     else:
         print(f"Unknown action '{args.type}'")
