@@ -74,7 +74,7 @@ def create_dir(filename):
                 raise
 
 
-def get_split_command(split_direction):
+def get_split_command(split_direction: str) -> list[str]:
     """What commands to use in what situation."""
     if split_direction == "vertical":
         return ["tmux", "split-window", "-v"]
@@ -100,7 +100,7 @@ def save_pane_history(output_file_name, pane_id=":", pipe="o", only_once=False):
         time.sleep(1)
 
 
-def pane_log(connection_type, host, restart=False):
+def pane_log(connection_type: str, host: str, restart: bool = False) -> None:
     """Toggle pane log."""
     sessions_metadata = load_sessions_metadata()
     last_session_index = "--" if connection_type == "l" else sessions_metadata["last_session_index"]
@@ -111,7 +111,7 @@ def pane_log(connection_type, host, restart=False):
     log_filename = (
         f"{LP.log_dir}/{year}/{month}/{day}/{current_time}---!{last_session_index}_{connection_type}_{host}.log"
     )
-    create_dir(log_filename)
+    Path(log_filename).parent.mkdir(parents=True, exist_ok=True)
 
     subprocess.run(
         [
@@ -152,7 +152,7 @@ def tmux_dm(message: str) -> None:
     subprocess.run(["tmux", "display-message", message], check=True)
 
 
-def tmux_set_pane_name(name):
+def tmux_set_pane_name(name: str) -> None:
     """Setting pane name."""
     subprocess.run(["tmux", "set", "-p", "@pane_name", name], check=True)
 
@@ -178,7 +178,7 @@ def load_sessions_metadata() -> dict[str, Any]:
         return json.load(f)
 
 
-def save_session(connection_type, host):
+def save_session(connection_type: str, host: str) -> None:
     """Saves information about session and updates metadata."""
     sessions_metadata = load_sessions_metadata()
     if "last_session_index" in sessions_metadata:
@@ -211,10 +211,8 @@ def save_session(connection_type, host):
     with open(LP.sessions_metadata, "w") as f:
         json.dump(sessions_metadata, f)
 
-    if not os.path.exists(LP.sessions_history):
-        create_dir(LP.sessions_history)
-        with open(LP.sessions_history, "w"):
-            pass
+    LP.sessions_history.parent.mkdir(parents=True, exist_ok=True)
+    LP.sessions_history.touch(exist_ok=True)
     with open(LP.sessions_history, "r+") as sessions_history_file:
         sessions_history = sessions_history_file.read()
         current_date = datetime.datetime.now().strftime("%d.%m.%Y")
@@ -226,10 +224,10 @@ def save_session(connection_type, host):
         )
 
 
-def ssh_config_hosts() -> list[str] | None:
+def ssh_config_hosts() -> list[str]:
     """Get .ssh/config hosts. Return list of hostnames."""
     if not os.path.exists(f"{LP.home}/.ssh/config"):
-        return None
+        return []
 
     with open(f"{LP.home}/.ssh/config") as f:
         ssh_config = f.read().splitlines()
@@ -415,11 +413,6 @@ def noc_menu(split_direction: str = "new") -> None:
             (f'run "{LP.script} setup_connection --connection_type telnet --split_direction {split_direction}"'),
         ),
         *MenuEntry(
-            "New Jump Telnet",
-            "J",
-            (f'run "{LP.script} setup_connection --connection_type jtelnet --split_direction {split_direction}"'),
-        ),
-        *MenuEntry(
             "New SSH",
             "s",
             (f'run "{LP.script} setup_connection --connection_type ssh --split_direction {split_direction}"'),
@@ -465,7 +458,7 @@ def noc_menu(split_direction: str = "new") -> None:
     subprocess.run([*tmux_cmd, *full_menu], check=True)
 
 
-def setup_connection(connection_type, split_direction):
+def setup_connection(connection_type: str, split_direction: str) -> None:
     """Showing connection prompt."""
     sessions_metadata = load_sessions_metadata()
     if f"last_{connection_type}_session" in sessions_metadata:
@@ -484,13 +477,12 @@ def setup_connection(connection_type, split_direction):
     subprocess.run(command, check=True)
 
 
-def connect_telnet(host, split_direction):
-    home = LP.home
+def connect_telnet(host: str, split_direction: str) -> None:
     subprocess.run(
         [
             *get_split_command(split_direction),
-            f'PROMPT_COMMAND="{home}/tmuxNOC/scripts/kbdfix.sh telnet {host}" TERM=vt100-w bash \
-              --rcfile {home}/tmuxNOC/misc/tmux_noc_bashrc',
+            f'PROMPT_COMMAND="{LP.home}/tmuxNOC/scripts/kbdfix.sh telnet {host}" TERM=vt100-w bash \
+              --rcfile {LP.home}/tmuxNOC/misc/tmux_noc_bashrc',
         ],
         check=True,
     )
@@ -501,29 +493,6 @@ def connect_telnet(host, split_direction):
         pane_log("t", host, restart=True)
     else:
         pane_log("t", host)
-
-
-def connect_jtelnet(host, split_direction):
-    """Connect to telnet via ssh jump host."""
-    jump_host = read_jump_host()
-    if not jump_host:
-        return
-    home = LP.home
-    subprocess.run(
-        [
-            *get_split_command(split_direction),
-            f'PROMPT_COMMAND="ssh {jump_host} -o ServerAliveInterval=300 -t \'/bin/bash -ilc \\"telnet {host}\\"\'" \
-              TERM=vt100-w bash --rcfile {home}/tmuxNOC/misc/tmux_noc_bashrc',
-        ],
-        check=True,
-    )
-    tmux_set_pane_name(f"jt/{host}")
-    rename_window()
-    save_session("jtelnet", host)
-    if split_direction == "reopen":
-        pane_log("jt", host, restart=True)
-    else:
-        pane_log("jt", host)
 
 
 def yes_no(question: str) -> bool:
@@ -545,7 +514,7 @@ def prompt_for_ssh_login(host):
     connect_ssh(host, "reopen", use_kbdfix, username)
 
 
-def connect_ssh(host, split_direction, use_kbdfix=None, username=None):
+def connect_ssh(host: str, split_direction: str, use_kbdfix: bool | None = None, username: str | None = None) -> None:
     home = LP.home
     script = LP.script
 
@@ -577,22 +546,19 @@ def connect_ssh(host, split_direction, use_kbdfix=None, username=None):
         pane_log("s", host)
 
 
-def rename_window(window_id=":"):
+def rename_window(window_id: str = ":") -> None:
     """Names windows according to pane name. If user option @window_title is set for window it won't be renamed."""
-    if window_id is None:
-        window_id = ":"
-
     window_title = subprocess.check_output(["tmux", "show", "-t", window_id, "-w", "@window_title"], encoding="UTF-8")
     if window_title:
         return
 
     panes_list = subprocess.check_output(
         ["tmux", "list-panes", "-t", window_id, "-F", "#{@pane_name}"], encoding="UTF-8"
-    ).split("\n")[:-1]
+    ).splitlines()[:-1]
     rename = False
     window_name = []
     for pane_name in panes_list:
-        if pane_name == "":
+        if not pane_name:
             window_name.append("local")
         else:
             rename = True
@@ -767,7 +733,6 @@ if __name__ == "__main__":
             "move_pane_window",
             "setup_connection",
             "connect_telnet",
-            "connect_jtelnet",
             "connect_ssh",
             "toggle_log",
             "save_pane_history",
@@ -806,8 +771,6 @@ if __name__ == "__main__":
         setup_connection(args.connection_type, args.split_direction)
     elif args.type == "connect_telnet":
         connect_telnet(args.host, args.split_direction)
-    elif args.type == "connect_jtelnet":
-        connect_jtelnet(args.host, args.split_direction)
     elif args.type == "connect_ssh":
         connect_ssh(args.host, args.split_direction)
     elif args.type == "toggle_log":
