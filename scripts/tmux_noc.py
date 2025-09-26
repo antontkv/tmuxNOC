@@ -7,7 +7,6 @@ import re
 import subprocess
 import sys
 import time
-from errno import EEXIST
 from pathlib import Path
 from typing import Any, Callable, NamedTuple
 
@@ -64,16 +63,6 @@ MENU_DELIMITER = ("",)
 MENU_EMPTY_LINE = menu_text("")
 
 
-def create_dir(filename):
-    """Creates path for file, if directories doesn't exists."""
-    if not os.path.exists(os.path.dirname(filename)):
-        try:
-            os.makedirs(os.path.dirname(filename))
-        except OSError as exc:  # Guard against race condition
-            if exc.errno != EEXIST:
-                raise
-
-
 def get_split_command(split_direction: str) -> list[str]:
     """What commands to use in what situation."""
     if split_direction == "vertical":
@@ -85,7 +74,7 @@ def get_split_command(split_direction: str) -> list[str]:
     return ["tmux", "new-window"]
 
 
-def save_pane_history(output_file_name, pane_id=":", pipe="o", only_once=False):
+def save_pane_history(output_file_name: str, pane_id: str = ":", pipe: str = "o", only_once: bool = False) -> None:
     """Saves whole pane history to a file."""
     for _ in pipe:
         output = subprocess.check_output(
@@ -134,19 +123,6 @@ def pane_log(connection_type: str, host: str, restart: bool = False) -> None:
         )
 
 
-def search_logs():
-    """Grep in log directory."""
-    rename_window()
-    query = input(f"{AC.YELLOW}grep in logs:{AC.END} ")
-    if not query.isspace() and query != "":
-        subprocess.run(
-            ["grep", "--color=always", "-n", "-r", query, "."], cwd=f"{LP.home}/tmuxNOC/local/log/", check=True
-        )
-    else:
-        print(f"{AC.RED}Empty query.{AC.END}")
-    search_logs()
-
-
 def tmux_dm(message: str) -> None:
     """Display message in status line."""
     subprocess.run(["tmux", "display-message", message], check=True)
@@ -155,20 +131,6 @@ def tmux_dm(message: str) -> None:
 def tmux_set_pane_name(name: str) -> None:
     """Setting pane name."""
     subprocess.run(["tmux", "set", "-p", "@pane_name", name], check=True)
-
-
-def open_log(history_index, split_direction):
-    """Open log file in less."""
-    log_file = None
-    for path in Path(LP.log_dir).rglob(f"*!{history_index}*"):
-        log_file = str(path)
-    if log_file is None:
-        tmux_dm(f"Log file with index {history_index} not found.")
-    else:
-        log_file_short = log_file.replace(LP.log_dir + "/", "")
-        subprocess.run([*get_split_command(split_direction), f'less -m "{log_file}"'], check=True)
-        tmux_set_pane_name(f"Log:{log_file_short}")
-        rename_window()
 
 
 def load_sessions_metadata() -> dict[str, Any]:
@@ -391,17 +353,6 @@ def noc_menu(split_direction: str = "new") -> None:
                 f'set -p @pane_name "Sessions History"; run "{LP.script} rename_window"'
             ),
         ),
-        *MenuEntry(
-            "Open Log File",
-            "l",
-            (
-                f'command-prompt -p "Open Log Number:" \'run "{LP.script} open_log '
-                f"--history_index %1 --split_direction {split_direction}\"'"
-            ),
-        ),
-        *MenuEntry(
-            "Search in Logs", "L", f'{split_command} "{LP.script} search_logs"; set -p @pane_name "grep in logs"'
-        ),
     ]
 
     session_menu = [
@@ -508,7 +459,7 @@ def yes_no(question: str) -> bool:
         print("It's yes or no question.\n")
 
 
-def prompt_for_ssh_login(host):
+def prompt_for_ssh_login(host: str) -> None:
     use_kbdfix = yes_no("Use kbdfix.sh and VT100 terminal?")
     username = input("Username: ")
     connect_ssh(host, "reopen", use_kbdfix, username)
@@ -569,7 +520,7 @@ def rename_window(window_id: str = ":") -> None:
         subprocess.run(["tmux", "set", "-w", "-t", window_id, "automatic-rename", "on"], check=True)
 
 
-def rename_windows():
+def rename_windows() -> None:
     """Rename all windows."""
     windows_list = subprocess.check_output(["tmux", "list-windows", "-F", "#{window_id}"], encoding="UTF-8").split(
         "\n"
@@ -603,22 +554,6 @@ def tmux_wait_for(string: str, timeout: float = 3.0, to_lower: bool = False) -> 
         time.sleep(0.1)
 
     return False
-
-
-def read_jump_host():
-    jump_host = ""
-    if not os.path.exists(LP.logins):
-        tmux_dm(f"File {LP.logins} doesn't exists.")
-        return None
-    with open(LP.logins, "r") as f:
-        logins = f.readlines()
-    for line in logins:
-        if "JUMP=" in line:
-            jump_host = line.replace("JUMP=", "").replace("\n", "")
-    if not jump_host:
-        tmux_dm(f"Jump host not found in {LP.logins}.")
-        return None
-    return jump_host
 
 
 def send_login_pwd(login_number: int) -> None:
@@ -736,8 +671,6 @@ if __name__ == "__main__":
             "connect_ssh",
             "toggle_log",
             "save_pane_history",
-            "search_logs",
-            "open_log",
             "rename_window",
             "rename_windows",
             "prompt_for_ssh_login",
@@ -777,10 +710,6 @@ if __name__ == "__main__":
         pane_log("l", "local")
     elif args.type == "save_pane_history":
         save_pane_history(args.file_name, args.pane_id, args.input)
-    elif args.type == "search_logs":
-        search_logs()
-    elif args.type == "open_log":
-        open_log(args.history_index, args.split_direction)
     elif args.type == "rename_window":
         rename_window(args.window_id)
     elif args.type == "rename_windows":
