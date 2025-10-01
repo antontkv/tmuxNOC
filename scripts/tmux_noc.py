@@ -577,7 +577,7 @@ def cmd_rename_window(window_id: str = ":") -> None:
 
     panes_list = subprocess.check_output(
         ["tmux", "list-panes", "-t", window_id, "-F", "#{@pane_name}"], encoding="UTF-8"
-    ).splitlines()[:-1]
+    ).splitlines()
     rename = False
     window_name = []
     for pane_name in panes_list:
@@ -594,9 +594,9 @@ def cmd_rename_window(window_id: str = ":") -> None:
 
 def cmd_rename_windows() -> None:
     """Rename all windows."""
-    windows_list = subprocess.check_output(["tmux", "list-windows", "-F", "#{window_id}"], encoding="UTF-8").split(
-        "\n"
-    )[:-1]
+    windows_list = subprocess.check_output(
+        ["tmux", "list-windows", "-F", "#{window_id}"], encoding="UTF-8"
+    ).splitlines()
 
     for window_id in windows_list:
         cmd_rename_window(window_id)
@@ -699,7 +699,7 @@ if __name__ == "__main__":
     parser.add_argument("--host", nargs="?")
     parser.add_argument("--connection_type", nargs="?")
     parser.add_argument("--pane_id", nargs="?")
-    parser.add_argument("--window_id", nargs="?")
+    parser.add_argument("--window_id", nargs="?", default=":")
     parser.add_argument("--split_direction", nargs="?")
     parser.add_argument("--file_name", nargs="?")
     parser.add_argument(
