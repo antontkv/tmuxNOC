@@ -1,4 +1,5 @@
-.vscode/
 plugins/
 local/
 *.swp
+.venv/
+__pycache__

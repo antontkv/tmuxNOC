@@ -1,0 +1,14 @@
+{
+    "ruff.enable": true,
+    "mypy.enabled": true,
+    "mypy.runUsingActiveInterpreter": true,
+    "files.trimTrailingWhitespace": true,
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.fixAll": "explicit",
+            "source.organizeImports": "explicit",
+        },
+    },
+}
