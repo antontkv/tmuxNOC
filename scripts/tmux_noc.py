@@ -571,7 +571,9 @@ def cmd_save_pane_history(output_file_name: str, pane_id: str = ":", pipe: str =
 
 def cmd_rename_window(window_id: str = ":") -> None:
     """Names windows according to pane name. If user option @window_title is set for window it won't be renamed."""
-    window_title = subprocess.check_output(["tmux", "show", "-t", window_id, "-w", "@window_title"], encoding="UTF-8")
+    window_title = subprocess.check_output(
+        ["tmux", "show", "-t", window_id, "-w", "-q", "@window_title"], encoding="UTF-8"
+    )
     if window_title:
         return
 
