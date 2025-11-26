@@ -9,7 +9,6 @@ requires-python = ">=3.10"
 dev = [
     "ruff",
     "mypy",
-    "SGRML",
 ]
 
 ########
