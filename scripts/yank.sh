@@ -19,6 +19,8 @@ elif is_app_installed win32yank.exe; then
   copy_backend="win32yank.exe -i"
 elif is_app_installed clip.exe; then
   copy_backend="clip.exe"
+elif [ -n "${DISPLAY-}" ] && is_app_installed wl-copy; then
+  copy_backend="wl-copy"
 elif [ -n "${DISPLAY-}" ] && is_app_installed xsel; then
   copy_backend="xsel -i --clipboard"
 elif [ -n "${DISPLAY-}" ] && is_app_installed xclip; then

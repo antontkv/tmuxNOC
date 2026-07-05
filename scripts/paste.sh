@@ -31,7 +31,9 @@ cmdsub() {
 }
 
 paste_backend=""
-if [ -n "${DISPLAY-}" ] && is_app_installed xsel; then
+if [ -n "${DISPLAY-}" ] && is_app_installed wl-paste; then
+  paste_backend="wl-paste -n"
+elif [ -n "${DISPLAY-}" ] && is_app_installed xsel; then
   paste_backend="xsel -o --clipboard"
 elif is_app_installed win32yank.exe; then
   paste_backend="win32yank.exe -o"

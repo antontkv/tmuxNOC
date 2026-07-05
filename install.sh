@@ -15,7 +15,7 @@ install_dependencies() {
     sudo apt update
     sudo apt-get -y install expect git telnet
   elif is_app_installed pacman; then
-    sudo pacman -Sy expect git
+    sudo pacman -S expect git inetutils
   fi
 }
 
